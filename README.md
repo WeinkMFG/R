@@ -88,7 +88,7 @@ Sometimes, for instance when calculating the Measurement Based Weight of organis
 
 This file provides functions that can be used to read and write from morphometric standard file formats (.nts, .tps) into a shapes object in R and vice versa.
 
-## MorphometricExtraction_Functions.r v. 1.1.2
+## MorphometricExtraction_Functions.r v. 1.2
 
 This file provides functions to extract morphometric data from images.
 

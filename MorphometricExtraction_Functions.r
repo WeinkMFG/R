@@ -2,7 +2,7 @@
 #Input data set: Images, possibly binarized
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.1.2
+#Version: 1.2
 #Date: 14 May 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -603,6 +603,10 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 #               TRUE: Normalize size to radius 1                        #
 #               FALSE: Leave size as is                                 #
 #               default=TRUE                                            #
+#    Double: Should a double spiral be extracted, for instance on...    #
+#            the external and internal side of the same shell?          #
+#            *logical*                                                  #
+#            default=FALSE                                              #
 # Output data: File of type .spiral (effectively a .csv file without... #
 #              row names) containing x- and y-coordinates and polar...  #
 #              coordinates (distance from center t, angle theta in...   #
@@ -614,15 +618,16 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 require(pixmap)
 require(rtiff)
 
-SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output, Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE){
+SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output, Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE, Double=FALSE){
 	#Test data for consistency
 	if (!InputType%in%c("ppm", "tif", "tiff")) {stop("Image type must be either of .ppm or .tif!")}
 	if(Equidistant==TRUE){
 		if(180%%Density!=0){stop(paste("180 cannot be divided by ", Density, " without remainder. Choose another value to get equidistant points along the spiral!", sep=""))}
 	}
 	
-	#Set up temporary results object
+	#Set up temporary results objects
 	Res<-list()
+	if (Double==TRUE) {Res2<-list()}
 	
 	#Setup success report matrix
 	ExtFail<-matrix(NA, (StopNum-StartNum)+1, 1)
@@ -653,12 +658,12 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 			
 			#Plot reference lines
 			{if (Guidelines==TRUE) {
-				abline(h=start$y)
-				if(90%%Density==0){abline(v=start$x)}
+				abline(h=start$y, col="pink", lwd=2)
+				if(90%%Density==0){abline(v=start$x, col="pink", lwd=2)}
 				Ang<-0
 				while(Ang<(180-Density)){
 					Ang<-Ang+Density
-					{if(Ang!=90){abline(a=start$y-start$x*tan(Ang*(pi/180)), b=tan(Ang*(pi/180)))}
+					{if(Ang!=90){abline(a=start$y-start$x*tan(Ang*(pi/180)), b=tan(Ang*(pi/180)), col="pink", lwd=2)}
 					else{}}
 				}
 			}
@@ -670,6 +675,10 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 			writeLines("Please digitize the points along the spiral. \nWhen you are finished right-click and choose stop.")
 			flush.console()
 			Coord<-locator(n=1000, type="o", lwd=2, pch=3, col="red")
+			if (Double==TRUE) {
+				writeLines("Please digitize the points along the other side of the spiral. \nWhen you are finished right-click and choose stop.")
+				Coord2<-locator(n=1000, type="o", lwd=2, pch=3, col="yellow")
+			}
 			
 			bringToTop(-1)
 			cont<-readline("Are the landmarks correct? (y=proceed, n=try again, c=cancel and proceed)")
@@ -696,18 +705,41 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 			else {Res[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
 			}
 		}
+		if (Double==TRUE) {
+			Res2[[k]]<-matrix(NA, length(Coord2$x), 4)
+			colnames(Res2[[k]])<-c("x", "y", "t", "theta")
+			Res2[[k]][,"x"]<-Coord2$x
+			Res2[[k]][,"y"]<-Coord2$y
+			for (i in 1:(length(Coord2$x))) {
+				Res2[[k]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
+				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[k]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else {Res2[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				}
+			}
+		}
 		
 		#Normalize spiral outline
 		##Normalize size for radius=1
 		if (Normalize==TRUE) {
 			Size<-max(Res[[k]][,"t"])
 			Res[[k]][,"t"]<-Res[[k]][,"t"]/Size
+			if (Double==TRUE) {
+				Res2[[k]][,"t"]<-Res2[[k]][,"t"]/Size
+			}
 		}
 		##Normalize rotation for start-point at radian=0
 		Rotation<-Res[[k]][1,"theta"]
 		for (i in 1:nrow(Res[[k]])) {
 			{if (Res[[k]][i,"theta"]>=Rotation) {Res[[k]][i,"theta"]<-Res[[k]][i,"theta"]-Rotation}
 			else {Res[[k]][i,"theta"]<-(2*pi)+(Res[[k]][i,"theta"]-Rotation)}}
+		}
+		if (Double==TRUE) {
+			for (i in 1:nrow(Res2[[k]])) {
+				{if (Res2[[k]][i,"theta"]>=Rotation) {Res2[[k]][i,"theta"]<-Res2[[k]][i,"theta"]-Rotation}
+				else {Res2[[k]][i,"theta"]<-(2*pi)+(Res2[[k]][i,"theta"]-Rotation)}}
+			}
 		}
 	}
 	
@@ -722,9 +754,26 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 		Res.Final[Start.Line+2,1:L]<-Res[[i]][,"t"]
 		Res.Final[Start.Line+3,1:L]<-Res[[i]][,"theta"]
 	}
+	if (Double==TRUE) {
+		Res.Final2<-matrix(NA, length(Res2)*4, max(unlist(lapply(lapply(Res2, dim), '[[', 1))))
+		rownames(Res.Final2)<-paste(c("x", "y", "t", "theta"), rep(StartNum:StopNum, each=4), sep=".")
+		for (i in 1:length(Res2)) {
+			Start.Line<-i+((i-1)*3)
+			L<-nrow(Res2[[i]])
+			Res.Final2[Start.Line,1:L]<-Res2[[i]][,"x"]
+			Res.Final2[Start.Line+1,1:L]<-Res2[[i]][,"y"]
+			Res.Final2[Start.Line+2,1:L]<-Res2[[i]][,"t"]
+			Res.Final2[Start.Line+3,1:L]<-Res2[[i]][,"theta"]
+		}
+	}
 	
 	#Export results
-	write.table(Res.Final, paste(Output, ".spiral", sep=""), sep=",", col.names=FALSE)
+	{if (Double==FALSE) {write.table(Res.Final, paste(Output, ".spiral", sep=""), sep=",", col.names=FALSE)}
+	else {
+		write.table(Res.Final, paste(Output, "_SideRed.spiral", sep=""), sep=",", col.names=FALSE)
+		write.table(Res.Final2, paste(Output, "_SideYellow.spiral", sep=""), sep=",", col.names=FALSE)
+	}
+	}
 	write.table(ExtFail, paste(Output, "_SuccessReport.txt", sep=""), sep="\t")
 }
 
@@ -763,6 +812,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 #1.1	Added function SpiralExtraction
 #1.1.1	Added possibility to provide specimen labels manually in OutlineExtraction and LMExtract
 #1.1.2	Numbering of specimens in Spiral.Extraction now based on start and stop number
+#1.2	Added functionality to Spiral.Extraction to extract two parallel spirals and enhanced visuals
 #--------------------------------------------
 #--------------------------------------------
 
