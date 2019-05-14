@@ -84,11 +84,11 @@ Sometimes, for instance when calculating the Measurement Based Weight of organis
 
 **Cite as:** Weinkauf, M. F. G., Moller, T., Koch, M. C., and Kučera, M. (2013) Calcification intensity in planktonic Foraminifera reflects ambient conditions irrespective of environmental stress. *Biogeosciences* 10: 6639-55. doi:10.5194/bg-10-6639-2013 
 
-## MorphoFiles_Function.r v. 1.2
+## MorphoFiles_Function.r v. 1.3
 
 This file provides functions that can be used to read and write from morphometric standard file formats (.nts, .tps) into a shapes object in R and vice versa.
 
-## MorphometricExtraction_Functions.r v. 1.1.1
+## MorphometricExtraction_Functions.r v. 1.1.2
 
 This file provides functions to extract morphometric data from images.
 

@@ -2,8 +2,8 @@
 #Input data set: Images, possibly binarized
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.1.1
-#Date: 3 November 2017
+#Version: 1.1.2
+#Date: 14 May 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -713,7 +713,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 	
 	#Prepare output file
 	Res.Final<-matrix(NA, length(Res)*4, max(unlist(lapply(lapply(Res, dim), '[[', 1))))
-	rownames(Res.Final)<-paste(c("x", "y", "t", "theta"), rep(1:length(Res), each=4), sep=".")
+	rownames(Res.Final)<-paste(c("x", "y", "t", "theta"), rep(StartNum:StopNum, each=4), sep=".")
 	for (i in 1:length(Res)) {
 		Start.Line<-i+((i-1)*3)
 		L<-nrow(Res[[i]])
@@ -762,6 +762,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 #1.0	Finished Program
 #1.1	Added function SpiralExtraction
 #1.1.1	Added possibility to provide specimen labels manually in OutlineExtraction and LMExtract
+#1.1.2	Numbering of specimens in Spiral.Extraction now based on start and stop number
 #--------------------------------------------
 #--------------------------------------------
 

@@ -12,8 +12,8 @@
 #	http://www.canisius.edu/~sheets/morphsoft.html
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.2
-#Date: 2 November 2017
+#Version: 1.3
+#Date: 14 May 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -212,6 +212,109 @@ Read.NTS<-function (File, na.remove=TRUE) {
 }
 
 #########################################################################
+# Combine two NTS files into one                                        #
+# Necessary input variables:                                            #
+#    File1: First .nts file to be combined.                             #
+#           *character*                                                 #
+#    File2: Second .nts file to be combined.                            #
+#           *character*                                                 #
+#    Output: Name of output file (including extension).                 #
+#            *character*                                                #
+#    Delete.old: Should the two original files be deleted after...      #
+#                combining them?                                        #
+#                *logical*                                              #
+#                default=FALSE                                          #
+#    Col.labels: Column labels which may be printed in the file if...   #
+#                desired.                                               #
+#                *vector*                                               #
+#                default=NULL                                           #
+# Output data: Morphometric data file in NTS format.                    #
+# Input dataset: Morphometric data files in NTS format.                 #
+#########################################################################
+
+#Load packages
+require(stringr)
+library(abind)
+
+Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
+	#Check for additional files to update
+	Files<-list.files(getwd())
+	NameParts<-vector(length=2, mode="character")
+	Temp<-strsplit(File1, split=".", fixed=TRUE)
+	NameParts[1]<-Temp[[1]][1]
+	Temp<-strsplit(File2, split=".", fixed=TRUE)
+	NameParts[2]<-Temp[[1]][1]
+	Temp<-strsplit(Output, split=".", fixed=TRUE)
+	NameParts[3]<-Temp[[1]][1]
+	File.Checker<-list()
+	{if (any(Files==paste(NameParts[1], "_Raw.nts", sep="")) & any(Files==paste(NameParts[2], "_Raw.nts", sep=""))) {File.Checker$Raw<-TRUE}
+	else {File.Checker$Raw<-FALSE}}
+	{if (any(Files==paste(NameParts[1], "_Success.txt", sep="")) & any(Files==paste(NameParts[2], "_Success.txt", sep=""))) {File.Checker$Success<-TRUE}
+	else {File.Checker$Success<-FALSE}}
+	{if (any(Files==paste(NameParts[1], "_Area.txt", sep="")) & any(Files==paste(NameParts[2], "_Area.txt", sep=""))) {File.Checker$Area<-TRUE}
+	else {File.Checker$Area<-FALSE}}
+	
+	#Read files
+	Dat1<-Read.NTS(File1, na.remove=FALSE)
+	Dat2<-Read.NTS(File2, na.remove=FALSE)
+	if (File.Checker$Raw==TRUE) {
+		Dat1.Raw<-Read.NTS(paste(NameParts[1], "_Raw.nts", sep=""), na.remove=FALSE)
+		Dat2.Raw<-Read.NTS(paste(NameParts[2], "_Raw.nts", sep=""), na.remove=FALSE)
+	}
+	if (File.Checker$Success==TRUE) {
+		Dat1.Success<-read.table(paste(NameParts[1], "_Success.txt", sep=""), header=TRUE, sep="\t")
+		Dat2.Success<-read.table(paste(NameParts[2], "_Success.txt", sep=""), header=TRUE, sep="\t")
+	}
+	if (File.Checker$Area==TRUE) {
+		Dat1.Area<-read.table(paste(NameParts[1], "_Area.txt", sep=""), header=TRUE, sep="\t")
+		Dat2.Area<-read.table(paste(NameParts[2], "_Area.txt", sep=""), header=TRUE, sep="\t")
+	}
+	
+	#Test compatibility of data
+	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	
+	#Combine data
+	Dat.Comb<-abind(Dat1, Dat2, along=3)
+	if (File.Checker$Raw==TRUE) {Dat.Raw.Comb<-abind(Dat1.Raw, Dat2.Raw, along=3)}
+	if (File.Checker$Success==TRUE) {Dat.Success.Comb<-rbind(Dat1.Success, Dat2.Success)}
+	if (File.Checker$Area==TRUE) {Dat.Area.Comb<-rbind(Dat1.Area, Dat2.Area)}
+	
+	#Write combined data
+	{if (is.null(dimnames(Dat.Comb)[[3]])) {Row.labels<-1:dim(Dat.Comb)[3]}
+	else {Row.labels<-dimnames(Dat.Comb)[[3]]}}
+	Write.NTS(Input=Dat.Comb, Matrix.type=1, Row.labels=Row.labels, Col.labels=Col.labels, Missing.values=FALSE, Missing=-999, Dimensions=dim(Dat.Comb)[2], Output=Output)
+	if (File.Checker$Raw==TRUE) {
+		Write.NTS(Input=Dat.Raw.Comb, Matrix.type=1, Row.labels=Row.labels, Col.labels=Col.labels, Missing.values=FALSE, Missing=-999, Dimensions=dim(Dat.Raw.Comb)[2], Output=paste(NameParts[3], "_Raw.nts", sep=""))
+		warning("Data files for raw coordinates detected and updated as well.")
+	}
+	if (File.Checker$Success==TRUE) {
+		write.table(Dat.Success.Comb, paste(NameParts[3], "_Success.txt", sep=""), sep="\t")
+		warning("Data files for extraction success detected and updated as well.")
+	}
+	if (File.Checker$Area==TRUE) {
+		write.table(Dat.Area.Comb, paste(NameParts[3], "_Area.txt", sep=""), sep="\t")
+		warning("Data files for specimen sizes detected and updated as well.")
+	}
+	
+	#Tidy up folder
+	if (Delete.old==TRUE) {
+		File.list<-c(File1, File2)
+		if (File.Checker$Raw==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Raw.nts", sep=""), paste(NameParts[2], "_Raw.nts", sep=""))}
+		if (File.Checker$Success==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Success.txt", sep=""), paste(NameParts[2], "_Success.txt", sep=""))}
+		if (File.Checker$Area==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Area.txt", sep=""), paste(NameParts[2], "_Area.txt", sep=""))}
+		
+		#Remove newly created files from delete list in case old files were overwritten
+		if (any(File.list==Output)) {File.list<-File.list[-which(File.list==Output)]}
+		if (any(File.list==paste(NameParts[3], "_Raw.nts", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Raw.nts", sep=""))]}
+		if (any(File.list==paste(NameParts[3], "_Success.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Success.txt", sep=""))]}
+		if (any(File.list==paste(NameParts[3], "_Area.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Area.txt", sep=""))]}
+		
+		#Delete files
+		file.remove(File.list)
+	}
+}
+
+#########################################################################
 # Write PAST morphology file from shapes object                         #
 # Necessary input variables:                                            #
 #    Input: Shapes object to be exported.                               #
@@ -227,17 +330,29 @@ Read.NTS<-function (File, na.remove=TRUE) {
 #                    dim(Input)[1]), 1:dim(Input)[1], sep="")           #
 #    Output: Name of output file (including extension).                 #
 #            *string*                                                   #
-# Output data: Morphometric data file in PAST moprhology file format.   #
+#    version: Which version of PAST the export file should be...        #
+#             compatible with? Either 2 or 3.                           #
+#             *numeric (integer)*                                       #
+#             default=2                                                 #
+#    Col: Colour information for PAST v. 3.x (ignored if version==2).   #
+#         *character*                                                   #
+#         default="Black"                                               #
+#    Sym: Symbol information for PAST v. 3.x (ignored if version==2).   #
+#         *character*                                                   #
+#         default="Dot"                                                 #
+# Output data: Morphometric data file in PAST morphology file format.   #
 # Input dataset: Morphometric object suitable for shapes-package.       #
 #########################################################################
 
-Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(letters[seq(from=24, to=25)], dim(Input)[1]), rep(1:dim(Input)[1], each=2), sep=""), Output) {
+Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(letters[seq(from=24, to=25)], dim(Input)[1]), rep(1:dim(Input)[1], each=2), sep=""), Output, version=2, Col=rep("Black", dim(Input)[1]), Sym=rep("Dot", dim(Input)[1])) {
 	#Check for consistency
+	if (version!=2 & version!=3) {stop("Version must be either '2' or '3'!")}
 	if (!is.null(Row.labels) && length(Row.labels)!=dim(Input)[3]) {stop("Row.labels must correspond in length to number of specimens in Input!")}
 	if (!is.null(Col.labels) && length(Col.labels)!=(dim(Input)[1]*dim(Input)[2])) {stop("Col.labels must correspond in length to number of coordinates per specimen in Input!")}
+	if (length(Col)!=dim(Input)[3]) {stop("One value of Col per specimen needed.")}
+	if (length(Sym)!=dim(Input)[3]) {stop("One value of Sym per specimen needed.")}
 
-	#Write output file
-	##Create data body
+	#Create data body
 	Res<-matrix(NA, dim(Input)[3], dim(Input)[1]*dim(Input)[2])
 	for (j in 1:(dim(Input)[3])) {
 		for (i in 1:(dim(Input)[1])) {
@@ -247,10 +362,22 @@ Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(le
 			Res[j,Pos2]<-Input[i,2,j]
 		}
 	}
-	##Label and export data
-	if (!is.null(Row.labels)) {rownames(Res)<-Row.labels}
-	if (!is.null(Col.labels)) {colnames(Res)<-Col.labels}
-	write.table(Res, Output, sep="\t", col.names=NA)
+	
+	#Label data
+	{if (!is.null(Row.labels)) {rownames(Res)<-Row.labels} else {rownames(Res)<-as.character(1:nrow(Res))}}
+	{if (!is.null(Col.labels)) {colnames(Res)<-Col.labels} else {colnames(Res)<-paste(rep(letters[seq(from=24, to=25)], dim(Input)[1]), rep(1:dim(Input)[1], each=2), sep="")}}
+	
+	#Export data
+	{if (version==2) {
+		write.table(Res, Output, quote=FALSE, sep="\t", col.names=c(paste(".", colnames(Res)[1], sep="\t"), colnames(Res)[2:ncol(Res)]))
+	}
+	else {
+		Res<-cbind(Col, Sym, rownames(Res), Res)
+		Res<-rbind(c("", "", "", colnames(Res)[4:ncol(Res)]), Res)
+		Res<-rbind(c(":", "", "", rep("-", ncol(Res)-3)), Res)
+		write.table(Res, Output, quote=FALSE, sep="\t", row.names=FALSE, col.names=FALSE)
+	}
+	}
 }
 
 #########################################################################
@@ -258,15 +385,37 @@ Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(le
 # Necessary input variables:                                            #
 #    File: PAST file to be read.                                        #
 #          *character*                                                  #
+#    version: Which version of PAST was used to export the file...      #
+#             Either 2 or 3.                                            #
+#             *numeric (integer)*                                       #
+#             default=2                                                 #
 # Output data: Morphometric object suitable for shapes-package.         #
 # Input dataset: Morphometric data file in PAST morphology file format. #
 #########################################################################
 
-Read.PAST<-function (File) {
+Read.PAST<-function (File, version=2) {
+	#Test input consistency
+	if (version!=2 & version!=3) {stop("Version must be either '2' or '3'!")}
+
 	#Read and prepare file
-	PAST<-read.table(File, header=FALSE, sep="\t", skip=1)
-	PAST[,1]<-NULL
-	colnames(PAST)<-paste(rep(letters[seq(from=24, to=25)], ncol(PAST)/2), rep(1:(ncol(PAST)/2), each=2), sep="")
+	{if (version==2) {
+		PAST<-read.table(File, header=FALSE, sep="\t", colClasses="character")
+		if (all(PAST[,ncol(PAST)]=="")) {PAST<-PAST[,1:(ncol(PAST)-1)]}
+		colnames(PAST)<-PAST[1,]; PAST<-PAST[2:nrow(PAST),]
+		rownames(PAST)<-PAST[,1]; PAST[,1]<-NULL
+		PAST<-apply(PAST, c(1, 2), as.numeric)
+	}
+	else {
+		PAST<-read.table(File, header=FALSE, sep="\t", colClasses="character")
+		Metadata<-list()
+		Metadata$Colour<-PAST[3:nrow(PAST),1]
+		Metadata$Symbol<-PAST[3:nrow(PAST),2]
+		colnames(PAST)<-PAST[2,]; PAST<-PAST[3:nrow(PAST),]
+		rownames(PAST)<-PAST[,3]; PAST<-PAST[,4:ncol(PAST)]
+		PAST<-apply(PAST, c(1, 2), as.numeric)
+		if (all(is.na(PAST[,ncol(PAST)]))) {PAST<-PAST[,1:(ncol(PAST)-1)]}
+	}
+	}
 	
 	#Coerce data
 	LMData<-array(NA, dim=c(ncol(PAST)/2, 2, nrow(PAST)), dimnames=list(NULL, c("x", "y"), NULL))
@@ -279,7 +428,91 @@ Read.PAST<-function (File) {
 		}
 	}
 	
-	return(LMData)
+	{if (version==2) {return(LMData)}
+	else {return(list("LMData"=LMData, "Metadata"=Metadata))}}
+}
+
+#########################################################################
+# Combine two PAST files into one                                       #
+# Necessary input variables:                                            #
+#    File1: First .dat file to be combined.                             #
+#           *character*                                                 #
+#    File2: Second .dat file to be combined.                            #
+#           *character*                                                 #
+#    Row.labels: Row labels which may be printed in the	 file if...     #
+#                desired.                                               #
+#                *vector*                                               #
+#                default=1:dim(Input)[3]                                #
+#    Col.labels: Column labels which may be printed in the file if...   #
+#                desired.                                               #
+#                *vector*                                               #
+#                default=paste(rep(letters[seq(from=24, to=25)],...     #
+#                    dim(Input)[1]), 1:dim(Input)[1], sep="")           #
+#    Output: Name of output file (including extension).                 #
+#            *string*                                                   #
+#    version: Which version of PAST is used for input/output? Either... #
+#             2 or 3.                                                   #
+#             *numeric (integer)*                                       #
+#             default=2                                                 #
+#    Delete.old: Should the two original files be deleted after...      #
+#                combining them?                                        #
+#                *logical*                                              #
+#                default=FALSE                                          #
+# Output data: Morphometric data file in PAST format.                   #
+# Input dataset: Morphometric data files in PAST format.                #
+#########################################################################
+
+#Load packages
+require(stringr)
+library(abind)
+
+Append.PAST<-function (File1, File2, Row.labels=NULL, Col.labels=NULL, Output, version=2, Delete.old=TRUE) {
+	#Test input consistency
+	if (version!=2 & version!=3) {stop("Version must be either '2' or '3'!")}
+	
+	#Read files
+	{if (version==2) {
+		Dat1<-Read.PAST(File1, version=2)
+		Dat2<-Read.PAST(File2, version=2)
+	}
+	else {
+		Dat1<-Read.PAST(File1, version=3)
+		Dat2<-Read.PAST(File2, version=3)
+		Metadata<-list()
+		Metadata$Colour<-c(Dat1$Metadata$Colour, Dat2$Metadata$Colour)
+		Metadata$Symbol<-c(Dat1$Metadata$Symbol, Dat2$Metadata$Symbol)
+		Dat1<-Dat1$LMData
+		Dat2<-Dat2$LMData
+	}
+	}
+	
+	#Test compatibility of data
+	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	
+	#Combine data
+	Dat.Comb<-abind(Dat1, Dat2, along=3)
+	
+	#Write combined data
+	if (is.null(Row.labels)) {Row.labels<-1:dim(Dat.Comb)[3]}
+	if (is.null(Col.labels)) {Col.labels<-paste(rep(letters[seq(from=24, to=25)], dim(Dat.Comb)[1]), rep(1:dim(Dat.Comb)[1], each=2), sep="")}
+	{if (version==2) {
+		Write.PAST(Dat.Comb, Row.labels=Row.labels, Col.labels=Col.labels, Output=Output, version=2)
+	}
+	else {
+		Write.PAST(Dat.Comb, Row.labels=Row.labels, Col.labels=Col.labels, Output=Output, version=3, Col=Metadata$Colour, Sym=Metadata$Symbol)
+	}
+	}
+	
+	#Tidy up folder
+	if (Delete.old==TRUE) {
+		File.list<-c(File1, File2)
+		
+		#Remove newly created files from delete list in case old files were overwritten
+		if (any(File.list==Output)) {File.list<-File.list[-which(File.list==Output)]}
+		
+		#Delete files
+		file.remove(File.list)
+	}
 }
 
 #########################################################################
@@ -319,9 +552,8 @@ Read.IMP<-function (File) {
 # Necessary input variables:                                            #
 #    Input: Shapes object to be exported.                               #
 #           *array*                                                     #
-#    Centroids: List of centroid sizes corresponding to objects in...   #
-#               Input.                                                  #
-#               *vector*                                                #
+#    ID: ID of specimens. Generated (continuous numbers) if missing.    #
+#        "character"                                                    #
 #    Filenames: List of filenames corresponding to objects in Input.    #
 #               *vector*                                                #
 #    Scaling: Should the landmark data be rescaled back before export.  #
@@ -348,19 +580,19 @@ Read.IMP<-function (File) {
 # Input dataset: Morphometric object suitable for shapes-package.       #
 #########################################################################
 
-Write.TPS<-function (Input, Centroids=NULL, Filenames=NULL, Scaling=TRUE, Scale=NULL, Output) {
+Write.TPS<-function (Input, ID=NULL, Filenames=NULL, Scaling=TRUE, Scale=NULL, Output) {
 	#Check for existing file
 	if (file.exists(Output)) {file.remove(Output)}
 	
 	#Check for consistency
 	if (Scaling==TRUE & any(is.null(Scale), length(Scale)==0)) {stop("Scaling requested but no Scale provided!")}
-	if (!is.null(Centroids)) {if (length(Centroids)!=(dim(Input)[3])) {stop("Centroids vector of wrong length!")}}
+	if (!is.null(ID)) {if (length(ID)!=(dim(Input)[3])) {stop("ID vector of wrong length!")}}
 	if (!is.null(Filenames)) {if (length(Filenames)!=(dim(Input)[3])) {stop("Filenames vector of wrong length!")}}
 	if (!is.null(Scale)) {if (length(Scale)!=(dim(Input)[3])) {stop("Scale vector of wrong length!")}}
 	if (!is.null(Scale) & Scaling==FALSE) {warning("Scale present but no scaling requested! Is this correct?")}
 	
 	#Prepare metadata
-	if (is.null(Centroids)) {Centroids<-rep(NA, dim(Input)[3])}
+	if (is.null(ID)) {ID<-as.character(1:dim(Input)[3])}
 	if (is.null(Filenames)) {Filenames<-rep(NA, dim(Input)[3])}
 	
 	#Scale data
@@ -380,7 +612,7 @@ Write.TPS<-function (Input, Centroids=NULL, Filenames=NULL, Scaling=TRUE, Scale=
 			cat(B, file=Output, sep="\n", append=TRUE)
 		}
 		cat(paste("IMAGE=", Filenames[j], sep=""), file=Output, sep="\n", append=TRUE)
-		cat(paste("ID=", dimnames(Input)[[3]][j], sep=""), file=Output, sep="\n", append=TRUE)
+		cat(paste("ID=", ID[j], sep=""), file=Output, sep="\n", append=TRUE)
 		if (!is.null(Scale)) {cat(paste("SCALE=", Scale[j], sep=""), file=Output, sep="\n", append=TRUE)}
 	}
 }
@@ -435,6 +667,7 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 	
 	#Set up output object
 	Output<-list()
+	Output$ID<-TPS.meta$ID
 	Output$Filenames<-TPS.meta$Image
 	Output$Scale<-TPS.meta$Scale
 	Output$LMData<-array(NA, dim=c(TPS.meta$Landmarks, TPS.meta$Dimension, TPS.meta$Specimens), dimnames=list(NULL, letters[24:(24+TPS.meta$Dimension-1)], TPS.meta$ID))
@@ -474,6 +707,81 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 }
 
 #########################################################################
+# Combine two TPS files into one                                        #
+# Necessary input variables:                                            #
+#    File1: First .tps file to be combined.                             #
+#           *character*                                                 #
+#    File2: Second .tps file to be combined.                            #
+#           *character*                                                 #
+#    Output: Name of output file (including extension).                 #
+#            *character*                                                #
+#    Delete.old: Should the two original files be deleted after...      #
+#                combining them?                                        #
+#                *logical*                                              #
+#                default=FALSE                                          #
+# Output data: Morphometric data file in TPS format.                    #
+# Input dataset: Morphometric data files in TPS format.                 #
+#########################################################################
+
+#Load packages
+require(stringr)
+library(abind)
+
+Append.TPS<-function (File1, File2, Output, Delete.old=FALSE) {
+	#Check for additional files to update
+	Files<-list.files(getwd())
+	NameParts<-vector(length=2, mode="character")
+	Temp<-strsplit(File1, split=".", fixed=TRUE)
+	NameParts[1]<-Temp[[1]][1]
+	Temp<-strsplit(File2, split=".", fixed=TRUE)
+	NameParts[2]<-Temp[[1]][1]
+	Temp<-strsplit(Output, split=".", fixed=TRUE)
+	NameParts[3]<-Temp[[1]][1]
+	{if (any(Files==paste(NameParts[1], "_SuccessReport.txt", sep="")) & any(Files==paste(NameParts[2], "_SuccessReport.txt", sep=""))) {File.Checker<-TRUE}
+	else {File.Checker<-FALSE}}
+	
+	#Read files
+	Dat1<-Read.TPS(File1, Scale=FALSE, na.remove=FALSE)
+	Dat2<-Read.TPS(File2, Scale=FALSE, na.remove=FALSE)
+	if (File.Checker==TRUE) {
+		Dat1.Success<-read.table(paste(NameParts[1], "_SuccessReport.txt", sep=""), header=TRUE, sep="\t")
+		Dat2.Success<-read.table(paste(NameParts[2], "_SuccessReport.txt", sep=""), header=TRUE, sep="\t")
+	}
+	
+	#Test compatibility of data
+	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	
+	#Combine data
+	Dat.Meta.Comb<-list()
+	Dat.Meta.Comb$ID<-c(Dat1$ID, Dat2$ID)
+	Dat.Meta.Comb$Filenames<-c(Dat1$Filenames, Dat2$Filenames)
+	{if (length(Dat1$Scale)>0) {Dat.Meta.Comb$Scale<-c(Dat1$Scale, Dat2$Scale)}
+	else {Dat.Meta.Comb$Scale<-NULL}}
+	Dat.Comb<-abind(Dat1$LMData, Dat2$LMData, along=3)
+	if (File.Checker==TRUE) {Dat.Success.Comb<-rbind(Dat1.Success, Dat2.Success)}
+	
+	#Write combined data
+	Write.TPS(Input=Dat.Comb, ID=Dat.Meta.Comb$ID, Filenames=Dat.Meta.Comb$Filenames, Scaling=FALSE, Scale=Dat.Meta.Comb$Scale, Output=Output)
+	if (File.Checker==TRUE) {
+		write.table(Dat.Success.Comb, paste(NameParts[3], "_SuccessReport.txt", sep=""), sep="\t")
+		warning("Data files for extraction success detected and updated as well.")
+	}
+	
+	#Tidy up folder
+	if (Delete.old==TRUE) {
+		File.list<-c(File1, File2)
+		if (File.Checker==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_SuccessReport.txt", sep=""), paste(NameParts[2], "_SuccessReport.txt", sep=""))}
+		
+		#Remove newly created files from delete list in case old files were overwritten
+		if (any(File.list==Output)) {File.list<-File.list[-which(File.list==Output)]}
+		if (any(File.list==paste(NameParts[3], "_SuccessReport.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_SuccessReport.txt", sep=""))]}
+		
+		#Delete files
+		file.remove(File.list)
+	}
+}
+
+#########################################################################
 # Read Spiral file (as exported by function SpiralExtraction)           #
 # Necessary input variables:                                            #
 #    File: SPIRAL file to be read.                                      #
@@ -482,6 +790,9 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 #              nates of all specimens (one list entry per specimen).    #
 # Input dataset: Morphometric data file in SPIRAL format.               #
 #########################################################################
+
+#Load packages
+require(stringr)
 
 Read.Spiral<-function (File) {
 	#Read file
@@ -502,11 +813,89 @@ Read.Spiral<-function (File) {
 			Output[[Pos]][,"y"]<-as.vector(as.matrix(Temp[2,1:Length]))
 			Output[[Pos]][,"t"]<-as.vector(as.matrix(Temp[3,1:Length]))
 			Output[[Pos]][,"theta"]<-as.vector(as.matrix(Temp[4,1:Length]))
+			names(Output)[Pos]<-paste("Ind", strsplit(rownames(Temp)[1], split=".", fixed=TRUE)[[1]][2], sep=".")
 			Pos<-Pos+1
 		}}
 	}
 	
+	#Return results
 	return(Output)
+}
+
+#########################################################################
+# Combine two Spiral files into one                                     #
+# Necessary input variables:                                            #
+#    File1: First .spiral file to be combined.                          #
+#           *character*                                                 #
+#    File2: Second .spiral file to be combined.                         #
+#           *character*                                                 #
+#    Output: Name of output file (including extension).                 #
+#            *character*                                                #
+#    Delete.old: Should the two original files be deleted after...      #
+#                combining them?                                        #
+#                *logical*                                              #
+#                default=FALSE                                          #
+# Output data: Morphometric data file in Spiral format.                 #
+# Input dataset: Morphometric data files in Spiral format.              #
+#########################################################################
+
+#Load packages
+require(stringr)
+
+Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
+	#Check for additional files to update
+	Files<-list.files(getwd())
+	NameParts<-vector(length=2, mode="character")
+	Temp<-strsplit(File1, split=".", fixed=TRUE)
+	NameParts[1]<-Temp[[1]][1]
+	Temp<-strsplit(File2, split=".", fixed=TRUE)
+	NameParts[2]<-Temp[[1]][1]
+	Temp<-strsplit(Output, split=".", fixed=TRUE)
+	NameParts[3]<-Temp[[1]][1]
+	{if (any(Files==paste(NameParts[1], "_SuccessReport.txt", sep="")) & any(Files==paste(NameParts[2], "_SuccessReport.txt", sep=""))) {File.Checker<-TRUE}
+	else {File.Checker<-FALSE}}
+
+	#Read files
+	Dat1<-Read.Spiral(File1)
+	Dat2<-Read.Spiral(File2)
+	if (File.Checker==TRUE) {
+		Dat1.Success<-read.table(paste(NameParts[1], "_SuccessReport.txt", sep=""), header=TRUE, sep="\t")
+		Dat2.Success<-read.table(paste(NameParts[2], "_SuccessReport.txt", sep=""), header=TRUE, sep="\t")
+	}
+	
+	#Combine data
+	Dat.Comb<-c(Dat1, Dat2)
+	if (File.Checker==TRUE) {Dat.Success.Comb<-rbind(Dat1.Success, Dat2.Success)}
+	
+	#Write combined data
+	Res<-matrix(NA, length(Dat.Comb)*4, max(unlist(lapply(lapply(Dat.Comb, dim), '[[', 1))))
+	Ind<-strsplit(names(Dat.Comb), split=".", fixed=TRUE)
+	Ind<-sapply(Ind, "[[", 2)
+	rownames(Res)<-paste(c("x", "y", "t", "theta"), rep(Ind, each=4), sep=".")
+	for (i in 1:length(Dat.Comb)) {
+		Start.Line<-i+((i-1)*3)
+		L<-nrow(Dat.Comb[[i]])
+		Res[Start.Line,1:L]<-Dat.Comb[[i]][,"x"]
+		Res[Start.Line+1,1:L]<-Dat.Comb[[i]][,"y"]
+		Res[Start.Line+2,1:L]<-Dat.Comb[[i]][,"t"]
+		Res[Start.Line+3,1:L]<-Dat.Comb[[i]][,"theta"]
+	}
+	write.table(Res, Output, sep=",", col.names=FALSE)
+	if (File.Checker==TRUE) {
+		write.table(Dat.Success.Comb, paste(NameParts[3], "_SuccessReport.txt", sep=""), sep="\t")
+		warning("Data files for extraction success detected and updated as well.")
+	}
+	
+	#Tidy up folder
+	if (Delete.old==TRUE) {
+		File.list<-c(File1, File2)
+		
+		#Remove newly created files from delete list in case old files were overwritten
+		if (any(File.list==Output)) {File.list<-File.list[-which(File.list==Output)]}
+		
+		#Delete files
+		file.remove(File.list)
+	}
 }
 
 #--------------------------------------------
@@ -539,10 +928,15 @@ Read.Spiral<-function (File) {
 #NTS file format
 #Write.NTS(Test1, Output="NTSExample_File.nts")
 #Data<-Read.NTS("NTSExample_File.nts")
+#Append.NTS("Stars_Rep1.nts", "Stars_Rep1.nts", "Stars_Rep1.nts", Delete.old=TRUE)
 
 #File format for PAST 2.x and 3.x
-#Write.PAST(Test1, Output="PASTExample_File.txt")
-#Data<-Read.PAST("PASTExample_File.txt")
+#Write.PAST(Test1, Output="PAST2Example_File.dat")
+#Write.PAST(Test1, Output="PAST3Example_File.dat", version=3)
+#Data<-Read.PAST("PAST2Example_File.dat")
+#Data<-Read.PAST("PAST3Example_File.dat", version=3)
+#Append.PAST("PAST2Example_File.dat", "PAST2Example_File.dat", Output="TestPAST2.dat")
+#Append.PAST("PAST3Example_File.dat", "PAST3Example_File.dat", Output="TestPAST3.dat", version=3)
 
 #IMP file format
 #Data<-Read.IMP("IMPExample_File.txt")
@@ -550,9 +944,11 @@ Read.Spiral<-function (File) {
 #TPS file format
 #Write.TPS(Test1, Filenames=paste("Image", 1:10, ".jpg", sep=""), Scaling=FALSE, Output="TPSExample_File.tps")
 #Data<-Read.TPS("TPSExample_File.tps", Scale=FALSE, na.remove=FALSE)
+#Append.TPS("TPSExample_File.tps", "TPSExample_File.tps", Output="PSExample_File.tps", Delete.old=FALSE)
 
 #SPIRAL file format
 #Data<-Read.Spiral("SPIRALExample_File.spiral")
+#Append.Spiral("SPIRALExample_File.spiral", "SPIRALExample_File.spiral", Output="SPIRALExample_File.spiral", Delete.old=TRUE)
 
 #--------------------------------------------
 #--------------------------------------------
@@ -561,7 +957,13 @@ Read.Spiral<-function (File) {
 #1.1	Added Write.PAST, Read.PAST, and Read.IMP functions
 #	added colnames check in Write.NTS
 #	added file cleanup for Write.TPS
-#1.2	added Read.Spiral
+#1.2	Added Read.Spiral
+#1.3	Added "Apend" functions for all data files
+#	upgraded PAST for compatability with PAST 3.x files
+#       added return of ID to Read.TPS
+#	removed unused "Centroid" parameter from TPS functions
+#	added manual ID generation to Write.TPS
+#	Read.Spiral now uses the actual specimen numbers for naming the output object elements
 #--------------------------------------------
 #--------------------------------------------
 
