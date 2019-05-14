@@ -132,6 +132,12 @@ It can sometimes be difficult to calculate the goodness of fit (i.e. the ability
 
 This file provides a couple of functions to transform data from other sources to be used in the Generic Mapping Tools. Currently works with: World Ocean Atlas .csv data, Ocean Data View spreadsheets (.txt files).
 
+## ToPAST_Function v. 1.0
+
+This file provides functions to read and write data in PAST v. 2.x and v. 3.x formats (Hammer et al. 2001) from R.
+
+* Hammer, Ø., Harper, D., and Ryan, P. D. (2001) PAST: PAlaeontological STatistics software package for education and data anslysis. *Palaeontologia Electronica* 4 (1): Article 4.
+
 ## TraditionalMorphometrics_Functions v. 1.3
 
 Traditional morphometrics are one of the two major branches of morphometrics (geometric morphometrics being the other). Traditional morphometrics use only a few selected measurements to describe the morphology of an object, which is why it is oftentimes neglected nowadays. What it lacks in descriptive power, however, it makes up for in understandability and time-effectiveness of data-gathering. The script provided here includes some of the main approaches used in traditional morphometric analyses. Most of the functions are based on Claude (2008), but have been reworked/reassembled to obtain an even higher degree of automation.
