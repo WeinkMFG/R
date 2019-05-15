@@ -2,8 +2,8 @@
 #Input data set: Images, possibly binarized
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.2
-#Date: 14 May 2019
+#Version: 1.2.1
+#Date: 15 May 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -634,6 +634,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 	rownames(ExtFail)<-paste(ImageName, StartNum:StopNum, sep=".")
 	
 	#Extract spiral
+	Ind<-1
 	for (k in StartNum:StopNum) {
 		print(k)
 		Image<-paste(ImageName, k, ".", InputType, sep="")
@@ -677,6 +678,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 			Coord<-locator(n=1000, type="o", lwd=2, pch=3, col="red")
 			if (Double==TRUE) {
 				writeLines("Please digitize the points along the other side of the spiral. \nWhen you are finished right-click and choose stop.")
+				flush.console()
 				Coord2<-locator(n=1000, type="o", lwd=2, pch=3, col="yellow")
 			}
 			
@@ -689,33 +691,33 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 		dev.off();
 		
 		#Write success report
-		{if (cont=="y") {ExtFail[k,1]<-1}
-		else {ExtFail[k,1]<-0}}
+		{if (cont=="y") {ExtFail[Ind,1]<-1}
+		else {ExtFail[Ind,1]<-0}}
 		
 		#Calculate lengths and angles of data
-		Res[[k]]<-matrix(NA, length(Coord$x), 4)
-		colnames(Res[[k]])<-c("x", "y", "t", "theta")
-		Res[[k]][,"x"]<-Coord$x
-		Res[[k]][,"y"]<-Coord$y
+		Res[[Ind]]<-matrix(NA, length(Coord$x), 4)
+		colnames(Res[[Ind]])<-c("x", "y", "t", "theta")
+		Res[[Ind]][,"x"]<-Coord$x
+		Res[[Ind]][,"y"]<-Coord$y
 		for (i in 1:(length(Coord$x))) {
-			Res[[k]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
-			{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[k]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else {Res[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			Res[[Ind]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
+			{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[Ind]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[Ind]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[Ind]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else {Res[[Ind]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
 			}
 		}
 		if (Double==TRUE) {
-			Res2[[k]]<-matrix(NA, length(Coord2$x), 4)
-			colnames(Res2[[k]])<-c("x", "y", "t", "theta")
-			Res2[[k]][,"x"]<-Coord2$x
-			Res2[[k]][,"y"]<-Coord2$y
+			Res2[[Ind]]<-matrix(NA, length(Coord2$x), 4)
+			colnames(Res2[[Ind]])<-c("x", "y", "t", "theta")
+			Res2[[Ind]][,"x"]<-Coord2$x
+			Res2[[Ind]][,"y"]<-Coord2$y
 			for (i in 1:(length(Coord2$x))) {
-				Res2[[k]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
-				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[k]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else {Res2[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				Res2[[Ind]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
+				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[Ind]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[Ind]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[Ind]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else {Res2[[Ind]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
 				}
 			}
 		}
@@ -723,24 +725,27 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 		#Normalize spiral outline
 		##Normalize size for radius=1
 		if (Normalize==TRUE) {
-			Size<-max(Res[[k]][,"t"])
-			Res[[k]][,"t"]<-Res[[k]][,"t"]/Size
+			Size<-max(c(Res[[Ind]][,"t"], Res2[[Ind]][,"t"]))
+			Res[[Ind]][,"t"]<-Res[[Ind]][,"t"]/Size
 			if (Double==TRUE) {
-				Res2[[k]][,"t"]<-Res2[[k]][,"t"]/Size
+				Res2[[Ind]][,"t"]<-Res2[[Ind]][,"t"]/Size
 			}
 		}
 		##Normalize rotation for start-point at radian=0
-		Rotation<-Res[[k]][1,"theta"]
-		for (i in 1:nrow(Res[[k]])) {
-			{if (Res[[k]][i,"theta"]>=Rotation) {Res[[k]][i,"theta"]<-Res[[k]][i,"theta"]-Rotation}
-			else {Res[[k]][i,"theta"]<-(2*pi)+(Res[[k]][i,"theta"]-Rotation)}}
+		Rotation<-Res[[Ind]][1,"theta"]
+		for (i in 1:nrow(Res[[Ind]])) {
+			{if (Res[[Ind]][i,"theta"]>=Rotation) {Res[[Ind]][i,"theta"]<-Res[[Ind]][i,"theta"]-Rotation}
+			else {Res[[Ind]][i,"theta"]<-(2*pi)+(Res[[Ind]][i,"theta"]-Rotation)}}
 		}
 		if (Double==TRUE) {
-			for (i in 1:nrow(Res2[[k]])) {
-				{if (Res2[[k]][i,"theta"]>=Rotation) {Res2[[k]][i,"theta"]<-Res2[[k]][i,"theta"]-Rotation}
-				else {Res2[[k]][i,"theta"]<-(2*pi)+(Res2[[k]][i,"theta"]-Rotation)}}
+			for (i in 1:nrow(Res2[[Ind]])) {
+				{if (Res2[[Ind]][i,"theta"]>=Rotation) {Res2[[Ind]][i,"theta"]<-Res2[[Ind]][i,"theta"]-Rotation}
+				else {Res2[[Ind]][i,"theta"]<-(2*pi)+(Res2[[Ind]][i,"theta"]-Rotation)}}
 			}
 		}
+		
+		#Increase row counter
+		Ind<-Ind+1
 	}
 	
 	#Prepare output file
@@ -813,6 +818,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 #1.1.1	Added possibility to provide specimen labels manually in OutlineExtraction and LMExtract
 #1.1.2	Numbering of specimens in Spiral.Extraction now based on start and stop number
 #1.2	Added functionality to Spiral.Extraction to extract two parallel spirals and enhanced visuals
+#1.2.1	Fixed an error where Spiral.Extraction would fail if StartNum was different from 1
 #--------------------------------------------
 #--------------------------------------------
 
