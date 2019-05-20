@@ -4,8 +4,8 @@
 #	-Ocean Data View spreadsheet .txt file
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 1.1
-#Date: 3 February 2017
+#Version: 1.2
+#Date: 20 May 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -19,7 +19,7 @@
 
 #**************************************************************************************
 #Setting working directory
-setwd("C:/R_TestData/GMT")
+#setwd("C:/R_TestData/GMT")
 
 #########################################################################
 # Function to summarize information from WOA .csv file                  #
@@ -45,6 +45,26 @@ WOA.Info<-function (File) {
 	Depth.Info[[1]]<-Depths
 	names(Depth.Info)<-"Available depths:"
 	print(Depth.Info)
+}
+
+#########################################################################
+# Function to read WOA .csv file                                        #
+# Necessary input variables:                                            #
+#   File: Name of the input file (.csv)                                 #
+#         *character*                                                   #
+# Output data: Matrix with the data in the WOA file.                    #
+# Input dataset: Comma separated file, as downloaded from World Ocean...#
+#                Atlas.                                                 #
+#########################################################################
+
+WOA.Read<-function (File) {
+	#Read file
+	Depths<-scan(File, sep=",", skip=1, nlines=1, what="raw", quiet=TRUE)
+	Depths<-c(as.numeric(strsplit(Depths[3], split=":", fixed=TRUE)[[1]][2]), as.numeric(Depths[4:length(Depths)]))
+	Input<-read.csv(File, header=FALSE, sep=",", comment.char="#", col.names=c("Lat", "Lon", paste(as.character(Depths), "m", sep=".")), fill=TRUE)
+	
+	#Return results
+	return(Input)
 }
 
 #########################################################################
@@ -130,6 +150,24 @@ ODV.Info<-function (File) {
 	Var.Info[[1]]<-colnames(Input)
 	names(Var.Info)<-"Available variables:"
 	print(Var.Info)
+}
+
+#########################################################################
+# Function to read ODV spreadsheet .txt file                            #
+# Necessary input variables:                                            #
+#   File: Name of the input file (.txt)                                 #
+#         *character*                                                   #
+# Output data: Matrix with the data in the ODV file.                    #
+# Input dataset: Tabstop delimited .txt file, as exported by ODV via... #
+#                "Export as ODV spreadsheet".                           #
+#########################################################################
+
+ODV.Read<-function (File) {
+	#Read file
+	Input<-read.table(File, header=TRUE, sep="\t", comment.char="/")
+	
+	#Return data
+	return(Input)
 }
 
 #########################################################################
@@ -233,5 +271,6 @@ Path.smoothout<-function(Coord, iter){
 #Version History
 #1.0	Finished Program
 #1.1	Added function Path.smoothout
+#1.2	Added WOA.Read and ODV.Read functions
 #--------------------------------------------
 #--------------------------------------------

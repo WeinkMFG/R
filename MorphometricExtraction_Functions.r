@@ -631,6 +631,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 	
 	#Setup success report matrix
 	ExtFail<-matrix(NA, (StopNum-StartNum)+1, 1)
+	colnames(ExtFail)<-c("Success")
 	rownames(ExtFail)<-paste(ImageName, StartNum:StopNum, sep=".")
 	
 	#Extract spiral

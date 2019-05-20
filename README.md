@@ -128,9 +128,9 @@ It can sometimes be difficult to calculate the goodness of fit (i.e. the ability
 
 * Stukel, Th. A. (1988) Generalized logistic models. *Journal of the American Statistical Association* 83 (402): 426–31.
 
-## ToGMT_Function v. 1.1
+## ToGMT_Function v. 1.2
 
-This file provides a couple of functions to transform data from other sources to be used in the Generic Mapping Tools. Currently works with: World Ocean Atlas .csv data, Ocean Data View spreadsheets (.txt files).
+This file provides a couple of functions to read and transform data from other sources to be used in the Generic Mapping Tools. Currently works with: World Ocean Atlas .csv data, Ocean Data View spreadsheets (.txt files).
 
 ## ToPAST_Function v. 1.0
 
