@@ -10,8 +10,8 @@
 #		Morphometrics for Biologists"
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.11
-#Date: 31 August 2018
+#Version: 1.11.1
+#Date: 16 July 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -1794,7 +1794,7 @@ require(mclust)
 require(mvoutlier)
 require(vegan)
 
-Species.Delimit<-function (Morpho.Data, k=ncol(Morpho.Data), Clust.N=round((nrow(Morpho.Data)/10), digits=0), Ts=0.9, As=0.8, Group.Assignment=NULL, A.priori=NULL)  {
+Species.Delimit<-function (Morpho.Data, k=nrow(Morpho.Data), Clust.N=round((nrow(Morpho.Data)/10), digits=0), Ts=0.9, As=0.8, Group.Assignment=NULL, A.priori=NULL)  {
 	#Test data consistency
 	k=round(k, digits=0)
 	if (k>ncol(Morpho.Data)) {stop("k must be smaller or equal to the number of parameters!")}
@@ -1985,6 +1985,7 @@ Species.Delimit<-function (Morpho.Data, k=ncol(Morpho.Data), Clust.N=round((nrow
 #1.10	Added function Species.Delimit from former file MorphoSpeciesDelimitation_Function.r, which is now deprecated
 #	Added the functionality to Species.Delimit to export an a priori species delimitation
 #1.11	Added calculation of leave-one-out cross-validated correct classification to Hotellingsp
+#1.11.1	Fixed an error in Species.Delimit where k used ncol instead of nrow
 #--------------------------------------------
 #--------------------------------------------
 

@@ -2,8 +2,8 @@
 #Input data set: Images, possibly binarized
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.2.1
-#Date: 15 May 2019
+#Version: 1.2.2
+#Date: 16 July 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -321,14 +321,14 @@ OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Outp
 		#Writing x-y coordinates of outline into variable
 		{if (cont=="y") {
 			if (RawVersion==TRUE) {
-				CoordRes.Raw[i,xc]<-RcEqual[,"X"]
-				CoordRes.Raw[i,yc]<-RcEqual[,"Y"]
+				CoordRes.Raw[MatPos,xc]<-RcEqual[,"X"]
+				CoordRes.Raw[MatPos,yc]<-RcEqual[,"Y"]
 			}
-			CoordRes[i,xc]<-RcSmooth[,"X"]
-			CoordRes[i,yc]<-RcSmooth[,"Y"]
+			CoordRes[MatPos,xc]<-RcSmooth[,"X"]
+			CoordRes[MatPos,yc]<-RcSmooth[,"Y"]
 		}
 		else if (cont=="c") {
-			CoordRes[i,]<--999
+			CoordRes[MatPos,]<--999
 		}
 		}
 		
@@ -648,7 +648,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 			y<-readTiff(Image)
 		}}
 		cont<-NA
-		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))){
+		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))) {
 			#Plot image
 			par(mar=c(1, 1, 1, 1))
 			plot(y)
@@ -820,6 +820,7 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 #1.1.2	Numbering of specimens in Spiral.Extraction now based on start and stop number
 #1.2	Added functionality to Spiral.Extraction to extract two parallel spirals and enhanced visuals
 #1.2.1	Fixed an error where Spiral.Extraction would fail if StartNum was different from 1
+#1.2.2	Fixed an error where OutlineExtraction would fail if StartNum was different from 1
 #--------------------------------------------
 #--------------------------------------------
 

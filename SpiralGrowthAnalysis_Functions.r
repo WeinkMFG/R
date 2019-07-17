@@ -4,8 +4,8 @@
 #	-Images in the ppm format
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 1.3
-#Date: 1 Novenber 2014
+#Version: 1.4
+#Date: 16 July 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -20,18 +20,20 @@
 # Analysing data of spiral outlines                                     #
 # Necessary packages: lmodel2                                           #
 # Necessary input variables:                                            #
-#   DataName: Name part of datasets (same for all files).               #
-#             *string*                                                  #
-#   StartNum: Smallest of row of continuous numbers used to number...   #
-#             files.                                                    #
-#             *numeric (integer)*                                       #
-#    StopNum: Largest of row of continuous numbers used to number files.#
-#             *numeric (integer)*                                       #
+#   Input: Dataset to be analysed.                                      #
+#          *list*                                                       #
+#   T: Name of the column containing the radial distance value.         #
+#      *string*                                                         #
+#      default="t"                                                      #
+#   Theta: Name of the column containing the angle value.               #
+#          *string*                                                     #
+#          default="theta"                                              #
 # Input dataset: A set of data points along the spiral, given as...     #
-#                radial distance t (first column) and  angle theta in...#
-#                radians (second column). Values are supposed to be...  #
-#                normalized for radius one and rotated such that...     #
-#                theta[1] is zero!                                      #
+#                radial distance t and  angle theta in radians....      #
+#                Values are supposed to be normalized for radius one... #
+#                and rotated such that theta[1] is zero! The object...  #
+#                "Input" is supposed to be a list as produced by...     #
+#                Read.Spiral.                                           #
 # Output dataset: Matrix with dip, intercept, and R2 for model II...    #
 #                 linear regression (ranged major axis) of log-...      #
 #                 transformed distances t dependent on theta.           #
@@ -40,15 +42,27 @@
 #Loading packages
 require(lmodel2)
 
-SpiralAnalysis<-function(DataName, StartNum, StopNum) {
+SpiralAnalysis<-function(Input, T="t", Theta="theta") {
+	#Test data consistency
+	Input.Colnames<-lapply(Input, colnames)
+	Col.checker<-list()
+	Col.checker$T<-Col.checker$Theta<-vector(mode="logical", length=length(Input))
+	for (i in 1:length(Input)) {
+		if (T%in%Input.Colnames[[i]]) {Col.checker$T[i]<-TRUE}
+		if (Theta%in%Input.Colnames[[i]]) {Col.checker$Theta[i]<-TRUE}
+	}
+	if (!all(Col.checker$T==TRUE)) {stop("No data for radial distance in all datasets!")}
+	if (!all(Col.checker$Theta==TRUE)) {stop("No data for angle in all datasets!")}
+
 	#Setting up results matrix
-	Res<-matrix(NA, (StopNum-StartNum+1), 3)
+	Res<-matrix(NA, length(Input), 3)
 	colnames(Res)<-c("Dip", "Intercept", "Adjusted R squared")
-	for (k in StartNum:StopNum) {
-		#Reading data
-		DName<-paste(DataName, k, ".txt", sep="")
-		Data<-read.table(DName, header=TRUE)
-		
+	rownames(Res)<-names(Input)
+	for (k in 1:length(Input)) {
+		#Choosing data subset
+		Data<-Input[[k]]
+		Data<-cbind(Data[,T], Data[,Theta])
+	
 		#Determining whether spiral is left or right winding
 		{if (Data[3,2]>Data[2,2]) {Left<-FALSE}
 		else {Left<-TRUE}}
@@ -97,8 +111,8 @@ SpiralAnalysis<-function(DataName, StartNum, StopNum) {
 		Res[k,3]<-1-(SS.res/SS.tot)
 	}
 	
-	#Export results
-	write.table(Res,"SpiralFitting.txt",sep="\t")
+	#Return results
+	return(Res)
 }
 
 #--------------------------------------------
@@ -115,6 +129,7 @@ SpiralAnalysis<-function(DataName, StartNum, StopNum) {
 #1.1	Adds option in SpiralExtraction to skip size normalization
 #1.2	Changes OLS to RMA in SpiralAnalysis
 #1.3	Removed ImageConversion and SpiralExtraction functions to include in separate functions file MorphometricExtraction_Functions.r
+#1.4	Modified SpiralAnalysis to be integrated with the new data file structure of Spiral files
 #--------------------------------------------
 #--------------------------------------------
 

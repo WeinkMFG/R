@@ -66,7 +66,7 @@ This program can be used to project morphometric data extracted from specimens o
 
 This file cointains functions that have to do with geographical calculations. It will probably be expanded in the future, but for now it only contains a function that allows to calculate the corner coordinates of a square of a given size around a given center coordinate.
 
-## GeometricMorphometrics_Functions.r v. 1.11
+## GeometricMorphometrics_Functions.r v. 1.11.1
 
 Geometric morphometrics are one of the two major branches of morphometrics (traditional morphometrics being the other). While traditional morphometrics use only a few selected measurements to describe the morphology of an object, geometric morphometrics try to capture the whole picture of morphology. Geometric morphometrics relies on the definition of relatively few, well chosen landmarks within the object to perform that task and is the newest branch of morphometrics analyses. It tries to capture the whole shape (i.e. size-independent form) of objects using a coherent set of landmarks, instead of doing so using a combination of more or less arbitrarily chosen linear measurements. It can thus describe general shape change independent of size (and is therefore not affected by scaling problems). On the other hand it concentrates on only a few well chosen features of the object, instead of extracting the whole outline regardless of their local explanatory value. It therefore occupies a middle ground between outline analyses and traditional morphometrics. In contrast to both other methods, however, landmarks are not independent of each other after fitting, so that traditional statistic approaches cannot be aplied without modifications to landmark data. The script provided here offers a variety of geometric morphometric analysis tools. Other function files allow extraction of landmarks, reading and writing of .nts and .tps files as intial steps. This function file is complementing, not replacing, the R-packages shapes, Momocs, and geomorph. Apart from R, [MorphoJ](http://www.flywings.org.uk/morphoj_page.htm) is very versatile alternative for landmarks analyses. Most of the functions are based on Claude (2008) and Zelditch et al. (2012), but have been reworked/reassembled to obtain an even higher degree of automation.
 
@@ -84,11 +84,11 @@ Sometimes, for instance when calculating the Measurement Based Weight of organis
 
 **Cite as:** Weinkauf, M. F. G., Moller, T., Koch, M. C., and Kučera, M. (2013) Calcification intensity in planktonic Foraminifera reflects ambient conditions irrespective of environmental stress. *Biogeosciences* 10: 6639-55. doi:10.5194/bg-10-6639-2013 
 
-## MorphoFiles_Function.r v. 1.3
+## MorphoFiles_Function.r v. 1.3.1
 
 This file provides functions that can be used to read and write from morphometric standard file formats (.nts, .tps) into a shapes object in R and vice versa.
 
-## MorphometricExtraction_Functions.r v. 1.2.1
+## MorphometricExtraction_Functions.r v. 1.2.2
 
 This file provides functions to extract morphometric data from images.
 
@@ -118,7 +118,7 @@ Linear regression in general is one of the most abused methods of statistical an
 
 * Theil, H. (1950) A Rank-Invariant Method of Linear and Polynomial Regression Analysis, III. *Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen* 53 (9): 1397-412.
 
-## SpiralGrowthAnalysis_Functions v. 1.3
+## SpiralGrowthAnalysis_Functions v. 1.4
 
 This function provides tools to extract growth data on spirally growing organisms (Foraminifera, Ammonoidea, etc.) and analyse those data using a robust linear regression. Its purpose is to test the deviation of growth from spirality, to estimate to what degree the growth follows an ideal logarithmic spiral.
 

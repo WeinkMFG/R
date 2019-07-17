@@ -12,8 +12,8 @@
 #	http://www.canisius.edu/~sheets/morphsoft.html
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.3
-#Date: 14 May 2019
+#Version: 1.3.1
+#Date: 16 July 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -221,7 +221,8 @@ Read.NTS<-function (File, na.remove=TRUE) {
 #    Output: Name of output file (including extension).                 #
 #            *character*                                                #
 #    Delete.old: Should the two original files be deleted after...      #
-#                combining them?                                        #
+#                combining them? This can be safely set to TRUE even... #
+#                if an old file is replaced by an updated version.      #
 #                *logical*                                              #
 #                default=FALSE                                          #
 #    Col.labels: Column labels which may be printed in the file if...   #
@@ -253,6 +254,8 @@ Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
 	else {File.Checker$Success<-FALSE}}
 	{if (any(Files==paste(NameParts[1], "_Area.txt", sep="")) & any(Files==paste(NameParts[2], "_Area.txt", sep=""))) {File.Checker$Area<-TRUE}
 	else {File.Checker$Area<-FALSE}}
+	{if (any(Files==paste(NameParts[1], "_Baseline.txt", sep="")) & any(Files==paste(NameParts[2], "_Baseline.txt", sep=""))) {File.Checker$Baseline<-TRUE}
+	else {File.Checker$Baseline<-FALSE}}
 	
 	#Read files
 	Dat1<-Read.NTS(File1, na.remove=FALSE)
@@ -269,15 +272,21 @@ Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
 		Dat1.Area<-read.table(paste(NameParts[1], "_Area.txt", sep=""), header=TRUE, sep="\t")
 		Dat2.Area<-read.table(paste(NameParts[2], "_Area.txt", sep=""), header=TRUE, sep="\t")
 	}
+	if (File.Checker$Baseline==TRUE) {
+		Dat1.Baseline<-read.table(paste(NameParts[1], "_Baseline.txt", sep=""), header=TRUE, sep="\t")
+		Dat2.Baseline<-read.table(paste(NameParts[2], "_Baseline.txt", sep=""), header=TRUE, sep="\t")
+	}
 	
 	#Test compatibility of data
-	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	if (dim(Dat1)[1]!=dim(Dat2)[1]) {stop("Datasets to combine do not have same number of outline points!")}
+	if (dim(Dat1)[2]!=dim(Dat2)[2]) {stop("Datasets to combine do not have same dimensionality!")}
 	
 	#Combine data
 	Dat.Comb<-abind(Dat1, Dat2, along=3)
 	if (File.Checker$Raw==TRUE) {Dat.Raw.Comb<-abind(Dat1.Raw, Dat2.Raw, along=3)}
 	if (File.Checker$Success==TRUE) {Dat.Success.Comb<-rbind(Dat1.Success, Dat2.Success)}
 	if (File.Checker$Area==TRUE) {Dat.Area.Comb<-rbind(Dat1.Area, Dat2.Area)}
+	if (File.Checker$Baseline==TRUE) {Dat.Baseline.Comb<-rbind(Dat1.Baseline, Dat2.Baseline)}
 	
 	#Write combined data
 	{if (is.null(dimnames(Dat.Comb)[[3]])) {Row.labels<-1:dim(Dat.Comb)[3]}
@@ -295,6 +304,10 @@ Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
 		write.table(Dat.Area.Comb, paste(NameParts[3], "_Area.txt", sep=""), sep="\t")
 		warning("Data files for specimen sizes detected and updated as well.")
 	}
+	if (File.Checker$Baseline==TRUE) {
+		write.table(Dat.Baseline.Comb, paste(NameParts[3], "_Baseline.txt", sep=""), sep="\t")
+		warning("Data files for baselines detected and updated as well.")
+	}
 	
 	#Tidy up folder
 	if (Delete.old==TRUE) {
@@ -302,12 +315,14 @@ Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
 		if (File.Checker$Raw==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Raw.nts", sep=""), paste(NameParts[2], "_Raw.nts", sep=""))}
 		if (File.Checker$Success==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Success.txt", sep=""), paste(NameParts[2], "_Success.txt", sep=""))}
 		if (File.Checker$Area==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Area.txt", sep=""), paste(NameParts[2], "_Area.txt", sep=""))}
+		if (File.Checker$Baseline==TRUE) {File.list<-c(File.list, paste(NameParts[1], "_Baseline.txt", sep=""), paste(NameParts[2], "_Baseline.txt", sep=""))}
 		
 		#Remove newly created files from delete list in case old files were overwritten
 		if (any(File.list==Output)) {File.list<-File.list[-which(File.list==Output)]}
 		if (any(File.list==paste(NameParts[3], "_Raw.nts", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Raw.nts", sep=""))]}
 		if (any(File.list==paste(NameParts[3], "_Success.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Success.txt", sep=""))]}
 		if (any(File.list==paste(NameParts[3], "_Area.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Area.txt", sep=""))]}
+		if (any(File.list==paste(NameParts[3], "_Baseline.txt", sep=""))) {File.list<-File.list[-which(File.list==paste(NameParts[3], "_Baseline.txt", sep=""))]}
 		
 		#Delete files
 		file.remove(File.list)
@@ -455,7 +470,8 @@ Read.PAST<-function (File, version=2) {
 #             *numeric (integer)*                                       #
 #             default=2                                                 #
 #    Delete.old: Should the two original files be deleted after...      #
-#                combining them?                                        #
+#                combining them? This can be safely set to TRUE even... #
+#                if an old file is replaced by an updated version.      #
 #                *logical*                                              #
 #                default=FALSE                                          #
 # Output data: Morphometric data file in PAST format.                   #
@@ -487,7 +503,8 @@ Append.PAST<-function (File1, File2, Row.labels=NULL, Col.labels=NULL, Output, v
 	}
 	
 	#Test compatibility of data
-	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	if (dim(Dat1)[1]!=dim(Dat2)[1]) {stop("Datasets to combine do not have same number of outline points!")}
+	if (dim(Dat1)[2]!=dim(Dat2)[2]) {stop("Datasets to combine do not have same dimensionality!")}
 	
 	#Combine data
 	Dat.Comb<-abind(Dat1, Dat2, along=3)
@@ -716,7 +733,8 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 #    Output: Name of output file (including extension).                 #
 #            *character*                                                #
 #    Delete.old: Should the two original files be deleted after...      #
-#                combining them?                                        #
+#                combining them? This can be safely set to TRUE even... #
+#                if an old file is replaced by an updated version.      #
 #                *logical*                                              #
 #                default=FALSE                                          #
 # Output data: Morphometric data file in TPS format.                    #
@@ -749,7 +767,8 @@ Append.TPS<-function (File1, File2, Output, Delete.old=FALSE) {
 	}
 	
 	#Test compatibility of data
-	if (!all(dim(Dat1)==dim(Dat2))) {stop("Datasets to combine do not have same dimensions!")}
+	if (dim(Dat1)[1]!=dim(Dat2)[1]) {stop("Datasets to combine do not have same number of outline points!")}
+	if (dim(Dat1)[2]!=dim(Dat2)[2]) {stop("Datasets to combine do not have same dimensionality!")}
 	
 	#Combine data
 	Dat.Meta.Comb<-list()
@@ -832,7 +851,8 @@ Read.Spiral<-function (File) {
 #    Output: Name of output file (including extension).                 #
 #            *character*                                                #
 #    Delete.old: Should the two original files be deleted after...      #
-#                combining them?                                        #
+#                combining them? This can be safely set to TRUE even... #
+#                if an old file is replaced by an updated version.      #
 #                *logical*                                              #
 #                default=FALSE                                          #
 # Output data: Morphometric data file in Spiral format.                 #
@@ -964,6 +984,8 @@ Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
 #	removed unused "Centroid" parameter from TPS functions
 #	added manual ID generation to Write.TPS
 #	Read.Spiral now uses the actual specimen numbers for naming the output object elements
+#1.3.1	Corrected check for compatability of dimensions in all append-functions
+#	Append.NTS corrected so that baseline-files are also correctly updated
 #--------------------------------------------
 #--------------------------------------------
 
