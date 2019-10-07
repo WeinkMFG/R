@@ -10,8 +10,8 @@
 #		Morphometrics for Biologists"
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.11.1
-#Date: 16 July 2019
+#Version: 1.11.2
+#Date: 7 October 2019
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -1500,7 +1500,8 @@ Hotellingsp<-function (Dat, Groups, exact=FALSE, Lines=NULL) {
 #                *integer*                                              #
 #                default=round(dim(Dat)[3]/3, digits=0)                 #
 # Output data: Plots showing UPGMA and complete clustering, elbow-...   #
-#              plot, and partitional clustering plot.                   #
+#              plot, and partitional clustering plot alongside...       #
+#              assiciated results values.                               #
 # Input dataset: Morphometric data in shapes format.                    #
 #########################################################################
 
@@ -1522,6 +1523,9 @@ MorphoCluster<-function (Dat, Groups, K=3, Max.Groups=round(dim(Dat)[3]/3, digit
 	Dat.Eucl<-ORP(Dat)
 	Eucl.Coord<-t(matrix(Dat.Eucl, (dim(Dat.Eucl)[1])*2, dim(Dat.Eucl)[3]))
 	
+	#Set up results for export
+	Res<-list()
+	
 	#Plot results
 	win.graph(16, 14, 10)
 	par(mar=c(4, 4, 3, 0), oma=c(0, 0, 0, 0))
@@ -1535,10 +1539,14 @@ MorphoCluster<-function (Dat, Groups, K=3, Max.Groups=round(dim(Dat)[3]/3, digit
 	Clust<-as.phylo(Clust)
 	Clust$tip.label<-paste(as.character(Groups), Clust$tip.label, sep="-")
 	plot(Clust, type="fan", tip.color=Col, main="UPGMA")
+	Res$UPGMA$Dist<-Dist.Mat
+	Res$UPGMA$Cluster<-Clust
 	Clust<-hclust(Dist.Mat, method="complete")
 	Clust<-as.phylo(Clust)
 	Clust$tip.label<-paste(as.character(Groups), Clust$tip.label, sep="-")
 	plot(Clust, type="fan", tip.color=Col, main="Complete")
+	Res$Complete$Dist<-Dist.Mat
+	Res$Complete$Cluster<-Clust
 	
 	#Perform partitional clustering
 	d.f<-dim(Eucl.Coord)[1]-1
@@ -1550,9 +1558,16 @@ MorphoCluster<-function (Dat, Groups, K=3, Max.Groups=round(dim(Dat)[3]/3, digit
 		expl[i]<-sum(diag(var(mod1$fitted.values)))*d.f/SStot
 	}
 	plot(1:Max.Groups, expl, xlab="Number of clusters", ylab="Explained variance (fraction)", pch=16, type="b")
+	Res$Elbow<-matrix(c(1:Max.Groups, expl), length(expl), 2)
+	colnames(Res$Elbow)<-c("Groups", "Expl.variance")
 	KMeans<-pam(dist(Eucl.Coord), k=K, keep.diss=TRUE)
 	Class<-length(which(KMeans$clustering==as.numeric(Groups)))/length(Groups)
 	plot(KMeans, which.plot=1, shade=TRUE, col.p=Col, col.txt=Col, col.clus="grey90", main=paste("Correct classification: ", round(Class*100, digits=2), "%", sep=""))
+	Res$Partitional$Cluster<-KMeans
+	Res$Partitional$Correct<-Class
+	
+	#Export results
+	return(Res)
 }
 
 #########################################################################
@@ -1986,6 +2001,7 @@ Species.Delimit<-function (Morpho.Data, k=nrow(Morpho.Data), Clust.N=round((nrow
 #	Added the functionality to Species.Delimit to export an a priori species delimitation
 #1.11	Added calculation of leave-one-out cross-validated correct classification to Hotellingsp
 #1.11.1	Fixed an error in Species.Delimit where k used ncol instead of nrow
+#1.11.2 Added export of result values to MorphoCluster
 #--------------------------------------------
 #--------------------------------------------
 
