@@ -36,8 +36,9 @@
 #Var3<-c(8.40735,5.85045,6.90855,11.30800,10.02730, 3.39939,5.43069,1.08864,1.84174,17.94280,4.85276, 1.19745,4.99449,5.05150,9.11405,8.39094,7.57381, 4.38397,3.77923,4.91364,3.09047,3.66245,2.40817, 1.76638)
 #ModII<-cbind(Var1, Var2, Var3)
 #colnames(ModIII)<-c("Temperature", "Size")
-#Sizes<-matrix(c(1, 1, 1, 4, 4, 4, 7, 7, 7, 10, 10, 10, 2.1, 2.3, 2.2, 3.5, 3.1, 3.2, 4.2, 5.0, 4.8, 6.1, 6.6, 6.2, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3), 12, 3)
-#colnames(Sizes)<-c("Salinity", "Length", "Block")
+Sizes<-matrix(c(1, 1, 1, 4, 4, 4, 7, 7, 7, 10, 10, 10, 2.1, 2.3, 2.2, 3.5, 3.1, 3.2, 4.2, 5.0, 4.8, 6.1, 6.6, 6.2, 1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, 3), 12, 3)
+Sizes=as.data.frame(Sizes)
+colnames(Sizes)<-c("Salinity", "Length", "Block")
 
 #**************************************************************************************
 #Setting working directory
@@ -358,11 +359,15 @@ Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) 
 	t.val<-qt(p=1-((1-conf)/2), df=length(y.original)-2)
 	
 	#Calculate standard error of regression
-	se<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))*sqrt(1/length(y.original)+(x.original-mean(x.original))^2/sum((x.original-mean(x.original))^2))
+	#se<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))*sqrt(1/length(y.original)+(x.original-mean(x.original))^2/sum((x.original-mean(x.original))^2))
+	mse<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))
+	#se<-mse*sqrt(1/length(y.original)+(x.new[,"x"]-mean(x.original))^2/sum((x.new[,"x"]-mean(x.original))^2))
+	se<-mse*sqrt(1/length(x.original)+(x.new[,"x"]-mean(x.new[,"x"]))^2/sum((x.original-mean(x.original))^2))
+	
 	
 	#Calculate confidence band
-	slope.upper<-suppressWarnings(y.fitted+t.val*se)
-	slope.lower<-suppressWarnings(y.fitted-t.val*se)
+	slope.upper<-suppressWarnings(eval(parse(text=eq), x.new)+t.val*se)
+	slope.lower<-suppressWarnings(eval(parse(text=eq), x.new)-t.val*se)
 	
 	#Coerce data for export and export results
 	Res<-cbind(x.original, y.original, y.fitted, slope.upper, slope.lower)
@@ -381,12 +386,32 @@ Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) 
 #lm3<-Kendall(Y=ModII[,3], X=ModII[,1])
 #lm3
 
-#mod<-lm(Sizes[,"Length"] ~ Sizes[,"Salinity"])
-#Conf<-Linear.Confidence(a=coef(mod)[2], b=coef(mod)[1], x.original<-Sizes[,"Salinity"], x.range=c(0, 11), y.original=Sizes[,"Length"], y.fitted=coef(mod)[2]*Sizes[,"Salinity"]+coef(mod)[1])
-#plot(Conf[,"X"], Conf[,"Y"])
-#lines(Conf[,"X"], Conf[,"Y.fitted"], col="black", lwd=3)
-#lines(Conf[,"X"], Conf[,"CI.upper"], col="blue", lwd=3)
-#lines(Conf[,"X"], Conf[,"CI.lower"], col="blue", lwd=3)
+https://stattrek.com/regression/slope-confidence-interval.aspx
+https://rpubs.com/aaronsc32/regression-confidence-prediction-intervals
+https://rpubs.com/aaronsc32/regression-confidence-prediction-intervals
+https://library2.lincoln.ac.nz/documents/Analysing-the-Variance.pdf
+
+a=coef(mod)[2]
+b=coef(mod)[1]
+x.original<-Sizes[,"Salinity"]
+y.original=Sizes[,"Length"]
+eq="0.4566667*x+1.596667"
+ci.eq=
+x.new<-data.frame(x=seq(from=1, to=30, by=0.05))
+eval(parse(text=eq), x.new)
+
+y.fitted=coef(mod)[2]*Sizes[,"Salinity"]+coef(mod)[1]
+mod<-lm(Length ~ Salinity, data=Sizes)
+Test<-predict(mod, newdata=data.frame(Salinity=1:15), interval="confidence")
+Conf<-Linear.Confidence(a=coef(mod)[2], b=coef(mod)[1], x.original=Sizes[,"Salinity"], y.original=Sizes[,"Length"], y.fitted=coef(mod)[2]*Sizes[,"Salinity"]+coef(mod)[1])
+plot(Conf[,"X"], Conf[,"Y"], xlim=c(0, 25), ylim=c(2, 15))
+lines(Conf[,"X"], Conf[,"Y.fitted"], col="black", lwd=3)
+lines(Test[,"upr"], lty=2)
+lines(Test[,"lwr"], lty=2)
+lines(Conf[,"X"], Conf[,"CI.upper"], col="blue", lwd=1, lty=2)
+lines(Conf[,"X"], Conf[,"CI.lower"], col="blue", lwd=1, lty=2)
+lines(x.new[,"x"], slope.upper, lwd=2, col="red", lty=1)
+lines(x.new[,"x"], slope.lower, lwd=2, col="red", lty=1)
 
 #--------------------------------------------
 #--------------------------------------------
