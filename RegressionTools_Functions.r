@@ -361,8 +361,8 @@ Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) 
 	#Calculate standard error of regression
 	#se<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))*sqrt(1/length(y.original)+(x.original-mean(x.original))^2/sum((x.original-mean(x.original))^2))
 	mse<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))
-	#se<-mse*sqrt(1/length(y.original)+(x.new[,"x"]-mean(x.original))^2/sum((x.new[,"x"]-mean(x.original))^2))
-	se<-mse*sqrt(1/length(x.original)+(x.new[,"x"]-mean(x.new[,"x"]))^2/sum((x.original-mean(x.original))^2))
+	se<-mse*sqrt(1/length(y.original)+(x.new[,"x"]-mean(x.original))^2/sum((x.new[,"x"]-mean(x.original))^2))
+	se<-mse*sqrt(1/length(y.original)+(x.new[,"x"]-mean(x.new[,"x"]))^2/sum((x.original-mean(x.original))^2))
 	
 	
 	#Calculate confidence band
