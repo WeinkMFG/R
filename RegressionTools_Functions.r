@@ -22,7 +22,7 @@
 #	
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 2.0.1
+#Version: 2.0.2
 #Date: 14 January 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
@@ -361,22 +361,25 @@ Linear.Confidence<-function (a, b, x.original, x.fit, y.original, y.fitted, conf
 	t.val<-qt(p=1-((1-conf)/2), df=length(y.original)-2)
 	
 	#Calculate standard error of regression
-	mse<-sqrt(sum((y.original-y.fitted)^2)/(length(x.original)-2))
-	se<-mse*sqrt((1/length(x.original))+(x.fit-mean(x.original, na.rm=TRUE))^2/sum((x.original-mean(x.original, na.rm=TRUE))^2, na.rm=TRUE))
+	mse<-sqrt(sum((y.original-y.fitted)^2, na.rm=TRUE)/(length(x.original)-2))
+	se.ci<-mse*sqrt((1/length(x.original))+(x.fit-mean(x.original, na.rm=TRUE))^2/sum((x.original-mean(x.original, na.rm=TRUE))^2, na.rm=TRUE))
+	se.pi<-mse*sqrt(1+(1/length(x.original))+(x.fit-mean(x.original, na.rm=TRUE))^2/sum((x.original-mean(x.original, na.rm=TRUE))^2, na.rm=TRUE))
 	
 	#Calculate fitted y-values over entire range
 	y.fit<-a*x.fit+b
 
 	#Calculate confidence band
-	slope.upper<-y.fit+t.val*se
-	slope.lower<-y.fit-t.val*se
+	slope.upper<-y.fit+t.val*se.ci
+	slope.lower<-y.fit-t.val*se.ci
+	prediction.upper<-y.fit+t.val*se.pi
+	prediction.lower<-y.fit-t.val*se.pi
 	
 	#Coerce data for export and export results
 	Res<-list()
 	Res$Input<-cbind(x.original, y.original, y.fitted)
-	Res$Output<-cbind(x.fit, y.fit, slope.upper, slope.lower)
+	Res$Output<-cbind(x.fit, y.fit, slope.upper, slope.lower, prediction.upper, prediction.lower)
 	colnames(Res$Input)<-c("X.data", "Y.data", "Y.model")
-	colnames(Res$Output)<-c("X.newdata", "Y.newdata", "CI.upper", "CI.lower")
+	colnames(Res$Output)<-c("X.newdata", "Y.newdata", "CI.upper", "CI.lower", "PI.upper", "PI.lower")
 	return(Res)
 }
 
@@ -404,6 +407,7 @@ Linear.Confidence<-function (a, b, x.original, x.fit, y.original, y.fitted, conf
 #1.0	Finished program
 #2.0	Added functions Mult.lm2 and Kendall
 #2.0.1	Fixed the Linear.Confidence function for extrapolation and fixed equation errors therin
+#2.0.2	Added prediction interval estimation to Linear.Confidence
 #
 #Note: Function Kendall was taken from Kendall_Theil_Regression_Function.r and the original...
 #	version history is given below. As of RegressionTools_Functions.r v. 2.0,...
