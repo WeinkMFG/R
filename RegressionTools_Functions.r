@@ -22,8 +22,8 @@
 #	
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 2.0
-#Date: 13 August 2018
+#Version: 2.0.1
+#Date: 14 January 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -339,6 +339,9 @@ Kendall<-function (Y, X, Plot=TRUE) {
 #      *numeric (real)*                                                 #
 #   x.original: Original values of the independent variable.            #
 #               *vector*                                                #
+#   x.fit: Independent variable values for which to fit the...          #
+#          confidence band.                                             #
+#          *vector*                                                     #
 #   y.original: Original values of the dependent variable.              #
 #               *vector*                                                #
 #   y.fitted: Fitted values for the dependent variable using the model. #
@@ -350,7 +353,7 @@ Kendall<-function (Y, X, Plot=TRUE) {
 # Input dataset: Coefficients of linear regression.                     #
 #########################################################################
 
-Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) {
+Linear.Confidence<-function (a, b, x.original, x.fit, y.original, y.fitted, conf=0.95) {
 	#Data consistency tests
 	if (length(y.original)!=length(y.fitted)) {stop("y.original and y.fitted must be of same length!")}
 	
@@ -358,15 +361,22 @@ Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) 
 	t.val<-qt(p=1-((1-conf)/2), df=length(y.original)-2)
 	
 	#Calculate standard error of regression
-	se<-sqrt(sum((y.original-y.fitted)^2)/(length(y.original)-2))*sqrt(1/length(y.original)+(x.original-mean(x.original))^2/sum((x.original-mean(x.original))^2))
+	mse<-sqrt(sum((y.original-y.fitted)^2)/(length(x.original)-2))
+	se<-mse*sqrt((1/length(x.original))+(x.fit-mean(x.original, na.rm=TRUE))^2/sum((x.original-mean(x.original, na.rm=TRUE))^2, na.rm=TRUE))
 	
+	#Calculate fitted y-values over entire range
+	y.fit<-a*x.fit+b
+
 	#Calculate confidence band
-	slope.upper<-suppressWarnings(y.fitted+t.val*se)
-	slope.lower<-suppressWarnings(y.fitted-t.val*se)
+	slope.upper<-y.fit+t.val*se
+	slope.lower<-y.fit-t.val*se
 	
 	#Coerce data for export and export results
-	Res<-cbind(x.original, y.original, y.fitted, slope.upper, slope.lower)
-	colnames(Res)<-c("X", "Y", "Y.fitted", "CI.upper", "CI.lower")
+	Res<-list()
+	Res$Input<-cbind(x.original, y.original, y.fitted)
+	Res$Output<-cbind(x.fit, y.fit, slope.upper, slope.lower)
+	colnames(Res$Input)<-c("X.data", "Y.data", "Y.model")
+	colnames(Res$Output)<-c("X.newdata", "Y.newdata", "CI.upper", "CI.lower")
 	return(Res)
 }
 
@@ -382,17 +392,18 @@ Linear.Confidence<-function (a, b, x.original, y.original, y.fitted, conf=0.95) 
 #lm3
 
 #mod<-lm(Sizes[,"Length"] ~ Sizes[,"Salinity"])
-#Conf<-Linear.Confidence(a=coef(mod)[2], b=coef(mod)[1], x.original<-Sizes[,"Salinity"], x.range=c(0, 11), y.original=Sizes[,"Length"], y.fitted=coef(mod)[2]*Sizes[,"Salinity"]+coef(mod)[1])
-#plot(Conf[,"X"], Conf[,"Y"])
-#lines(Conf[,"X"], Conf[,"Y.fitted"], col="black", lwd=3)
-#lines(Conf[,"X"], Conf[,"CI.upper"], col="blue", lwd=3)
-#lines(Conf[,"X"], Conf[,"CI.lower"], col="blue", lwd=3)
+#Conf<-Linear.Confidence(a=coef(mod)[2], b=coef(mod)[1], x.original<-Sizes[,"Salinity"], x.fit=seq(from=0, to=30, by=0.5), y.original=Sizes[,"Length"], y.fitted=coef(mod)[2]*Sizes[,"Salinity"]+coef(mod)[1])
+#plot(Conf$Input[,"X.data"], Conf$Input[,"Y.data"], xlim=c(0, 30), ylim=c(1, 15))
+#lines(Conf$Output[,"X.newdata"], Conf$Output[,"Y.newdata"], col="black", lwd=3)
+#lines(Conf$Output[,"X.newdata"], Conf$Output[,"CI.upper"], col="blue", lwd=3)
+#lines(Conf$Output[,"X.newdata"], Conf$Output[,"CI.lower"], col="blue", lwd=3)
 
 #--------------------------------------------
 #--------------------------------------------
 #Version History
 #1.0	Finished program
 #2.0	Added functions Mult.lm2 and Kendall
+#2.0.1	Fixed the Linear.Confidence function for extrapolation and fixed equation errors therin
 #
 #Note: Function Kendall was taken from Kendall_Theil_Regression_Function.r and the original...
 #	version history is given below. As of RegressionTools_Functions.r v. 2.0,...
