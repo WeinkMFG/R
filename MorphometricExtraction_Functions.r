@@ -15,31 +15,65 @@
 #setwd("C:/R_TestData/GeometricMorphometrics")
 
 #########################################################################
+# Image picking                                                         #
+# Necessary input variables:                                            #
+#    Dir: Directory path.                                               #
+#         *character*                                                   #
+#    pattern: Which file types to look for (i.e. the types of your)...  #
+#             image files. By default scans for the common file types...#
+#             "jpg", "png", "tif", "bmp", "gif", and the common type... #
+#             used in moprhometrics "ppm".                              #
+#             *character*                                               #
+# Output data: Vector of all image files to use.                        #
+# Input dataset: Computer directory.                                    #
+#########################################################################
+
+ImagePicking<-function (Dir, pattern=c("bmp", "gif", "jpg", "jpeg", "png", "tif", "tiff", "ppm")) {
+	#Set up pattern parameter
+	pattern<-paste("\\.", pattern, "$", sep="", collapse="|")
+
+	#List all files
+	File.list<-list.files(Dir, pattern=pattern, ignore.case=TRUE)
+	names(File.list)<-1:length(File.list)
+	print(File.list)
+	
+	#Provide the choice of files by number
+	writeLines("Please input the numbers of the files you wish to use. \nSeveral numbers can be input separated by commas. \nDO NOT ENTER SPACES!")
+	Image.No<-readline(prompt="Enter the image numbers: ")
+	Image.No<-scan(text=Image.No, quiet=TRUE, sep=",")
+	Images<-File.list[Image.No]
+	
+	#Output image names
+	return(as.data.frame(Images))
+}
+
+#########################################################################
 # Image conversion                                                      #
 # Necessary programs: Image Magic                                       #
 # Necessary input variables:                                            #
-#    ImageName: Name part of images (same for all immages).             #
-#               *character*                                             #
-#    StartNum: Smallest of row of continuous numbers used to number...  #
-#              images.                                                  #
-#              *numeric (integer)*                                      #
-#    StopNum: Largest of row of continuous numbers used to number...    #
-#             images.                                                   #
-#             *integer*                                                 #
+#    Images: A list of all the images to be converted.                  #
+#            *data frame* with image names in first column.             #
 #    Scaling: Relative scaling of the image during conversion.          #
 #             *numeric (integer)*                                       #
 #             default=100                                               #
-#    ImageType: Image type as ".xyz".                                   #
-#               *character*                                             #
-#    OutputType: Image type for output as ".xyz".                       #
+#    OutputType: Image type for output as "xyz".                        #
 #                *character*                                            #
 # Output data: Images in OutputType format.                             #
-# Input dataset: Images in ImageType format.                            #
+# Input dataset: Images to convert.                                     #
 #########################################################################
 
-ImageConversion<-function(ImageName, StartNum, StopNum, Scaling=100, ImageType, OutputType) {
-	for (i in (StartNum:StopNum)){
-		com<-paste("convert ", ImageName, i, ImageType, " ", "-resize ", Scaling, "%", " ", ImageName, i, OutputType, sep="")
+ImageConversion<-function(Images, Scaling=100, OutputType) {
+	#Test data consistency
+	if (!is.data.frame(Images)) {stop("'Images' must be a data frame!")}
+	if (ncol(Images)!=1) {warning("'Images' has more than one column. Only first column will be used!")}
+	
+	#Read image list into vector
+	Images<-as.vector(Images[,1])
+	
+	#Convert images
+	for (i in 1:length(Images)){
+		Name<-strsplit(Images[i], split=".", fixed=TRUE)[[1]][1]
+		com<-paste("convert ", Images[i], " ", "-resize ", Scaling, "%", " ", Name, ".", OutputType, sep="")
 		shell(com)
 	}
 }
@@ -787,11 +821,12 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 
 #Examples
 
+#Picking images
+#MorphoImages<-ImagePicking(Dir="C:/R_TestData")
+
 #Converting images
-#ImageConversion("Sp", 1, 3, ImageType=".png", OutputType=".ppm")
-#ImageConversion("Sp", 1, 3, ImageType=".png", OutputType=".tif")
-#ImageConversion("Spiral", 1, 3, ImageType=".png", OutputType=".ppm")
-#ImageConversion("Spiral", 1, 3, ImageType=".png", OutputType=".tif")
+#ImageConversion(Images=MorphoImages, OutputType="ppm")
+#ImageConversion(Images=MorphoImages, Scaling=50, OutputType="tif")
 
 #Extract outlines
 #setwd("C:/R_TestData/GeometricMorphometrics/Outlines")
