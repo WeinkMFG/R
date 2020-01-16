@@ -1,0 +1,4 @@
+"Success"
+"abtdjw23.tif"	1
+"SpcRX245.tif"	0
+"UMG2186.tif"	1

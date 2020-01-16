@@ -178,22 +178,14 @@ smoothout<-function(M, n){
 # Necessary packages: pixmap, rtiff, splancs                            #
 # Necessary functions: Conte, EquiDist, smoothout                       #
 # Necessary input variables:                                            #
-#    ImageName: Name part of images (same for all images).              #
-#               *string*                                                #
-#    InputType: Type of input images. It can be in one the following... #
-#               formats: "ppm", "tif"/"tiff"                            #
-#               *character*                                             #
-#               default="ppm"                                           #
-#    StartNum: Smallest of row of continuous numbers used to number...  #
-#              images.                                                  #
-#              *integer*                                                #
-#    StopNum: Largest of row of continuous numbers used to number...    #
-#             images.                                                   #
-#             *integer*                                                 #
+#    Images: A list of all the images to be converted.                  #
+#            *data frame* with image names in first column.             #
 #    Output: Name of the output file (excluding extension).             #
 #            *string*                                                   #
 #    Specimen.Labels: Names for the specimens. If NULL, numbers will... #
-#                     be used.                                          #
+#                     be used. If "Names", the name part of the...      #
+#                     images will be used.                              #
+#                     either NULL or "Names" or *character*             #
 #                     default=NULL                                      #
 #    OutlinePoints: Desired number of equidistantly spaced points...    #
 #                   along outline (see function EquiDist).              #
@@ -230,54 +222,69 @@ smoothout<-function(M, n){
 #                default=FALSE                                          #
 # Output data: Matrix containing x and y coordinates of specified...    #
 #              number of equidistant points along outline.              #
-# Input dataset: Several logically named image files in .ppm format.    #
+# Input dataset: Several logically named image files.                   #
 #########################################################################
 
 #Loading packages
+require(stringr)
+require(sfsmisc)
 require(pixmap)
 require(rtiff)
 require(splancs)
 
-OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Output, Specimen.Labels=NULL, OutlinePoints=100, Smoothing=1, Baseline=FALSE, Scale=FALSE, RawVersion=FALSE) {
-	#Test data for consistency
-	if (!InputType%in%c("ppm", "tif", "tiff")) {stop("Image type must be either of .ppm or .tif!")}
-	if (!is.null(Specimen.Labels) & length(Specimen.Labels)!=StopNum-StartNum+1) {stop("Specimen.Labels must have same length as number of images!")}
+OutlineExtraction<-function (Images, Output, Specimen.Labels=NULL, OutlinePoints=100, Smoothing=1, Baseline=FALSE, Scale=FALSE, RawVersion=FALSE) {
+	#Test data consistency
+	if (!is.data.frame(Images)) {stop("'Images' must be a data frame!")}
+	if (ncol(Images)!=1) {warning("'Images' has more than one column. Only first column will be used!")}
+	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	
+	#Read image list into vector
+	Images<-as.vector(Images[,1])
+	InputType<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), tail, n=1L))
+	InputType<-str_to_lower(InputType)
+	if (!all(InputType%in%c("tif", "tiff", "ppm"))) {stop("Only '.ppm' and '.tif' format images accepted!")}
 	
 	#Setting up control matrix
-	ExtFail<-matrix(NA, (StopNum-StartNum)+1, 1)
+	ExtFail<-matrix(NA, length(Images), 1)
 	colnames(ExtFail)<-c("Success")
-	rownames(ExtFail)<-paste(ImageName, c(StartNum:StopNum), sep="_")
+	{if (is.null(Specimen.Labels)) {rownames(ExtFail)<-1:length(Images)}
+	else if (Specimen.Labels=="Names") {rownames(ExtFail)<-Images}
+	else {rownames(ExtFail)<-Specimen.Labels}}
 	
 	#Setting up sizes matrix
 	if (Scale==TRUE) {
-		Sizes<-matrix(NA, (StopNum-StartNum)+1, 1)
+		Sizes<-matrix(NA, length(Images), 1)
 		colnames(Sizes)<-("Area")
-		rownames(Sizes)<-paste(ImageName, c(StartNum:StopNum), sep="_")
+		{if (is.null(Specimen.Labels)) {rownames(Sizes)<-1:length(Images)}
+		else if (Specimen.Labels=="Names") {rownames(Sizes)<-Images}
+		else {rownames(Sizes)<-Specimen.Labels}}
 	}
 	
 	#Setting up baseline matrix
 	if (Baseline==TRUE) {
-		Base<-matrix(NA, (StopNum-StartNum)+1, 4)
+		Base<-matrix(NA, length(Images), 4)
 		colnames(Base)<-c("x1", "y1", "x2", "y2")
-		rownames(Base)<-paste(ImageName, c(StartNum:StopNum), sep="_")
+		{if (is.null(Specimen.Labels)) {rownames(Base)<-1:length(Images)}
+		else if (Specimen.Labels=="Names") {rownames(Base)<-Images}
+		else {rownames(Base)<-Specimen.Labels}}
 	}
 	
 	#Setting up results matrix
-	if (RawVersion==TRUE) {CoordRes.Raw<-matrix(NA, (StopNum-StartNum+1), OutlinePoints*2)}
-	CoordRes<-matrix(NA, (StopNum-StartNum+1), OutlinePoints*2)
+	if (RawVersion==TRUE) {CoordRes.Raw<-matrix(NA, length(Images), OutlinePoints*2)}
+	CoordRes<-matrix(NA, length(Images), OutlinePoints*2)
 	xc<-seq.int(from=1, to=OutlinePoints*2, by=2)
 	yc<-seq.int(from=2, to=OutlinePoints*2, by=2)
 	
 	#Start data acquisition
 	MatPos<-1
-	for (i in StartNum:StopNum) {
+	for (i in 1:length(Images)) {
 		print(i)
-		Image<-paste(ImageName, i, ".", InputType, sep="")
+		Image<-Images[i]
 		#Reading image
-		{if (InputType=="ppm") {
+		{if (InputType[i]=="ppm") {
 			y<-read.pnm(Image)
 		}
-		else if (InputType=="tif" | InputType=="tiff") {
+		else if (InputType[i]=="tif" | InputType[i]=="tiff") {
 			y<-readTiff(Image)
 		}}
 		#Converting image to grey scale
@@ -362,6 +369,7 @@ OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Outp
 			CoordRes[MatPos,yc]<-RcSmooth[,"Y"]
 		}
 		else if (cont=="c") {
+			CoordRes.Raw[MatPos,]<--999
 			CoordRes[MatPos,]<--999
 		}
 		}
@@ -372,29 +380,31 @@ OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Outp
 	#Save outline coordinates as NTS file
 	if (RawVersion==TRUE) {
 		FileName<-paste(Output, "_Raw.nts", sep="")
-		{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), OutlinePoints*2, 1, -999, "dim=2", sep=" ")}
-		else {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), OutlinePoints*2, 0, "dim=2", sep=" ")}}
-		{if (is.null(Specimen.Labels)) {L<-StartNum:StopNum}
+		{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(length(Images), "L", sep=""), OutlinePoints*2, 1, -999, "dim=2", sep=" ")}
+		else {firstl<-paste(1, paste(length(Images), "L", sep=""), OutlinePoints*2, 0, "dim=2", sep=" ")}}
+		{if (is.null(Specimen.Labels)) {L<-1:length(Images)}
+		else if (Specimen.Labels=="Names") {L<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), "[[", 1))}
 		else {L<-Specimen.Labels}}
 		secondl<-paste(L, sep="", collapse=" ")
 		##Create file and write header
 		cat(firstl, secondl, file=FileName, sep="\n", append=FALSE)
 		##Create data body
-		for (i in 1:(nrow(CoordRes.Raw))) {
+		for (i in 1:nrow(CoordRes.Raw)) {
 			B<-paste(CoordRes.Raw[i,], sep="", collapse=" ")
 			cat(B, file=FileName, sep="\n", append=TRUE)
 		}
 	}
 	FileName<-paste(Output, ".nts", sep="")
-	{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), OutlinePoints*2, 1, -999, "dim=2", sep=" ")}
-	else {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), OutlinePoints*2, 0, "dim=2", sep=" ")}}
-	{if (is.null(Specimen.Labels)) {L<-StartNum:StopNum}
+	{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(length(Images), "L", sep=""), OutlinePoints*2, 1, -999, "dim=2", sep=" ")}
+	else {firstl<-paste(1, paste(length(Images), "L", sep=""), OutlinePoints*2, 0, "dim=2", sep=" ")}}
+	{if (is.null(Specimen.Labels)) {L<-1:length(Images)}
+	else if (Specimen.Labels=="Names") {L<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), "[[", 1))}
 	else {L<-Specimen.Labels}}
 	secondl<-paste(L, sep="", collapse=" ")
 	##Create file and write header
 	cat(firstl, secondl, file=FileName, sep="\n", append=FALSE)
 	##Create data body
-	for (i in 1:(nrow(CoordRes))) {
+	for (i in 1:nrow(CoordRes)) {
 		B<-paste(CoordRes[i,], sep="", collapse=" ")
 		cat(B, file=FileName, sep="\n", append=TRUE)
 	}
@@ -410,18 +420,8 @@ OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Outp
 # Landmark extraction                                                   #
 # Necessary packages: pixmap, rtiff                                     #
 # Necessary input variables:                                            #
-#    Image: Name-part of the images (same for all images).              #
-#           *character*                                                 #
-#    InputType: Type of input images. It can be in one the following... #
-#               formats: "ppm", "tif"/"tiff"                            #
-#               *character*                                             #
-#               default="ppm"                                           #
-#    StartNum: Smallest of row of continuous numbers used to number...  #
-#              images.                                                  #
-#              *numeric (integer)*                                      #
-#    StopNum: Largest of row of continuous numbers used to number...    #
-#             images.                                                   #
-#             *numeric (integer)*                                       #
+#    Images: A list of all the images to be converted.                  #
+#            *data frame* with image names in first column.             #
 #    Output: Name of the output file (excluding extension).             #
 #            *character*                                                #
 #    Specimen.Labels: Names for the specimens. If NULL, numbers will... #
@@ -454,46 +454,62 @@ OutlineExtraction<-function (ImageName, InputType="ppm", StartNum, StopNum, Outp
 #########################################################################
 
 #Load packages
+require(stringr)
+require(sfsmisc)
 require(pixmap)
 require(rtiff)
 
-LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.Labels=NULL, Scale=TRUE, ScaleParam=NULL, N, Export="TPS") {
+LMExtract<-function(Images, Output, Specimen.Labels=NULL, Scale=TRUE, ScaleParam=NULL, N, Export="TPS") {
 	#Test data for consistency
-	if (!InputType%in%c("ppm", "tif", "tiff")) {stop("Image type must be either of .ppm or .tif!")}
+	if (!is.data.frame(Images)) {stop("'Images' must be a data frame!")}
+	if (ncol(Images)!=1) {warning("'Images' has more than one column. Only first column will be used!")}
 	if (Export!="NTS" & Export!="TPS") {stop("Export format must be either NTS or TPS!")}
 	if (Scale==TRUE & !is.null(ScaleParam)) {Scale<-FALSE; warning("Cannot have scalebar and scale parameter at the same time, Scale has been set to FALSE")}
-	if (!is.null(ScaleParam) & length(ScaleParam)!=StopNum-StartNum+1) {stop("Must supply one value of ScaleParam per image")}
-	if (!is.null(Specimen.Labels) & length(Specimen.Labels)!=StopNum-StartNum+1) {stop("Specimen.Labels must have same length as number of images!")}
+	if (!is.null(ScaleParam) & length(ScaleParam)!=nrow(Images)) {stop("Must supply one value of ScaleParam per image")}
+	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	
+	#Read image list into vector
+	Images<-as.vector(Images[,1])
+	InputType<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), tail, n=1L))
+	InputType<-str_to_lower(InputType)
+	if (!all(InputType%in%c("tif", "tiff", "ppm"))) {stop("Only '.ppm' and '.tif' format images accepted!")}
 	
 	#Set up results matrices
 	{if (Export=="NTS") {
-		CoordRes<-matrix(NA, (StopNum-StartNum+1), N*2)
+		CoordRes<-matrix(NA, length(Images), N*2)
 		xc<-seq.int(from=1, to=N*2, by=2)
 		yc<-seq.int(from=2, to=N*2, by=2)
 	}
 	else {
-		CoordRes<-array(NA, dim=c(N, 2, StopNum-StartNum+1))
+		CoordRes<-array(NA, dim=c(N, 2, length(Images)))
 		Meta<-list()
-		Meta$Files<-vector(mode="character", length=StopNum-StartNum+1)
-		Meta$ID<-vector(mode="numeric", length=StopNum-StartNum+1)
-		Meta$Scale<-vector(mode="numeric", length=StopNum-StartNum+1)
+		Meta$Files<-vector(mode="character", length=length(Images))
+		Meta$ID<-vector(mode="numeric", length=length(Images))
+		Meta$Scale<-vector(mode="numeric", length=length(Images))
 	}}
 	
 	#Setup success report matrix
-	ExtFail<-matrix(NA, (StopNum-StartNum)+1, 1)
-	rownames(ExtFail)<-paste(Image, StartNum:StopNum, sep=".")
+	ExtFail<-matrix(NA, length(Images), 1)
+	colnames(ExtFail)<-c("Success")
+	{if (is.null(Specimen.Labels)) {rownames(ExtFail)<-1:length(Images)}
+	else if (Specimen.Labels=="Names") {rownames(ExtFail)<-Images}
+	else {rownames(ExtFail)<-Specimen.Labels}}
 	
-	for (i in StartNum:StopNum) {
+	#Extract landmarks
+	for (i in 1:length(Images)) {
 		print(i)
-		FileName<-paste(Image, i, ".", InputType, sep="")
+		FileName<-Images[i]
 
 		#Read and plot image
-		{if (InputType=="ppm") {
+		{if (InputType[i]=="ppm") {
 			y<-read.pnm(FileName)
 		}
-		else if (InputType=="tif" | InputType=="tiff") {
+		else if (InputType[i]=="tif" | InputType[i]=="tiff") {
 			y<-readTiff(FileName)
 		}}
+		
+		Image<-Images[i]
+		
 		cont<-NA
 		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))){
 			par(mar=(c(1, 1, 1, 1)))
@@ -520,7 +536,7 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 		}
 		
 		#Save copy of image with points for later comparison
-		dev.copy(png, filename=paste(Image, i, "_Points.png", sep=""));
+		dev.copy(png, filename=paste(strsplit(FileName, split=".", fixed=TRUE)[[1]][1], "_Landmarks.png", sep=""), width=5, height=5, units="in", res=200);
 		dev.off();
 		
 		#Write success report
@@ -550,6 +566,7 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 			}
 			Meta$Files[i]<-FileName
 			{if (is.null(Specimen.Labels)) {Meta$ID[i]<-i}
+			else if (Specimen.Labels=="Names") {Meta$ID[i]<-strsplit(FileName, split=".", fixed=TRUE)[[1]][1]}
 			else {Meta$ID[i]<-Specimen.Labels[i]}}
 		}}
 	}
@@ -557,15 +574,16 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 	#Export coordinates
 	{if (Export=="NTS") {
 		FileName<-paste(Output, ".nts", sep="")
-		{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), N*2, 1, -999, "dim=2", sep=" ")}
-		else {firstl<-paste(1, paste(StopNum-StartNum+1, "L", sep=""), N*2, 0, "dim=2", sep=" ")}}
-		{if (is.null(Specimen.Labels)) {L<-StartNum:StopNum}
+		{if (any(ExtFail[,1]==0)) {firstl<-paste(1, paste(length(Images), "L", sep=""), N*2, 1, -999, "dim=2", sep=" ")}
+		else {firstl<-paste(1, paste(length(Images), "L", sep=""), N*2, 0, "dim=2", sep=" ")}}
+		{if (is.null(Specimen.Labels)) {L<-1:length(Images)}
+		else if (Specimen.Labels=="Names") {L<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), "[[", 1))}
 		else {L<-Specimen.Labels}}
 		secondl<-paste(L, sep="", collapse=" ")
 		##Create file and write header
 		cat(firstl, secondl, file=FileName, sep="\n", append=FALSE)
 		##Create data body
-		for (i in 1:(nrow(CoordRes))) {
+		for (i in 1:nrow(CoordRes)) {
 			B<-paste(CoordRes[i,], sep="", collapse=" ")
 			cat(B, file=FileName, sep="\n", append=TRUE)
 		}
@@ -574,9 +592,9 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 		FileName<-paste(Output, ".tps", sep="")
 		firstl<-paste("LM=", N, sep="")
 		##Create file
-		for (j in 1:(dim(CoordRes)[3])) {
+		for (j in 1:dim(CoordRes)[3]) {
 			cat(firstl, file=FileName, sep="\n", append=TRUE)
-			for (i in 1:(dim(CoordRes)[1])) {
+			for (i in 1:dim(CoordRes)[1]) {
 				B<-paste(CoordRes[i,,j], sep="", collapse=" ")
 				cat(B, file=FileName, sep="\n", append=TRUE)
 			}
@@ -595,20 +613,13 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 # Plotting image, digitizing points along spiral                        #
 # Necessary packages: pixmap, rtiff                                     #
 # Necessary input variables:                                            #
-#    ImageName: Name part of images (same for all images).              #
-#               *character*                                             #
-#    InputType: Type of input images. It can be in one the following... #
-#               formats: "ppm", "tif"/"tiff"                            #
-#               *character*                                             #
-#               default="ppm"                                           #
-#    StartNum: Smallest of row of continuous numbers used to number...  #
-#              images.                                                  #
-#              *numeric (integer)*                                      #
-#    StopNum: Largest of row of continuous numbers used to number...    #
-#             images.                                                   #
-#             *numeric (integer)*                                       #
+#    Images: A list of all the images to be converted.                  #
+#            *data frame* with image names in first column.             #
 #    Output: Name of the output file (excluding extension).             #
 #            *character*                                                #
+#    Specimen.Labels: Names for the specimens. If NULL, numbers will... #
+#                     be used.                                          #
+#                     default=NULL                                      #
 #    Guidelines: Shall guiders be drawn to enable to take take points...#
 #                at equidistant spaces? Not recommended if measuring... #
 #                structures that have natural guides (like chambers).   #
@@ -649,38 +660,48 @@ LMExtract<-function(Image, InputType="ppm", StartNum, StopNum, Output, Specimen.
 #########################################################################
 
 #Loading packages
+require(stringr)
+require(sfsmisc)
 require(pixmap)
 require(rtiff)
 
-SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output, Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE, Double=FALSE){
+SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE, Double=FALSE){
 	#Test data for consistency
-	if (!InputType%in%c("ppm", "tif", "tiff")) {stop("Image type must be either of .ppm or .tif!")}
 	if(Equidistant==TRUE){
 		if(180%%Density!=0){stop(paste("180 cannot be divided by ", Density, " without remainder. Choose another value to get equidistant points along the spiral!", sep=""))}
 	}
+	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	
+	#Read image list into vector
+	Images<-as.vector(Images[,1])
+	InputType<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), tail, n=1L))
+	InputType<-str_to_lower(InputType)
+	if (!all(InputType%in%c("tif", "tiff", "ppm"))) {stop("Only '.ppm' and '.tif' format images accepted!")}
 	
 	#Set up temporary results objects
 	Res<-list()
 	if (Double==TRUE) {Res2<-list()}
 	
 	#Setup success report matrix
-	ExtFail<-matrix(NA, (StopNum-StartNum)+1, 1)
+	ExtFail<-matrix(NA, length(Images), 1)
 	colnames(ExtFail)<-c("Success")
-	rownames(ExtFail)<-paste(ImageName, StartNum:StopNum, sep=".")
+	{if (is.null(Specimen.Labels)) {rownames(ExtFail)<-1:length(Images)}
+	else if (Specimen.Labels=="Names") {rownames(ExtFail)<-Images}
+	else {rownames(ExtFail)<-Specimen.Labels}}
 	
 	#Extract spiral
-	Ind<-1
-	for (k in StartNum:StopNum) {
+	for (k in 1:length(Images)) {
 		print(k)
-		Image<-paste(ImageName, k, ".", InputType, sep="")
+		Image<-Images[k]
 		
 		#Read image
-		{if (InputType=="ppm") {
+		{if (InputType[k]=="ppm") {
 			y<-read.pnm(Image)
 		}
-		else if (InputType=="tif" | InputType=="tiff") {
+		else if (InputType[k]=="tif" | InputType=="tiff") {
 			y<-readTiff(Image)
 		}}
+		
 		cont<-NA
 		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))) {
 			#Plot image
@@ -722,37 +743,37 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 		}
 		
 		#Save image with spiral on for later comparison
-		dev.copy(jpeg, filename=paste(ImageName, k, "_Spiral.jpg", sep=""));
+		dev.copy(png, filename=paste(strsplit(FileName, split=".", fixed=TRUE)[[1]][1], "_Spiral.png", sep=""), width=5, height=5, units="in", res=200);
 		dev.off();
 		
 		#Write success report
-		{if (cont=="y") {ExtFail[Ind,1]<-1}
-		else {ExtFail[Ind,1]<-0}}
+		{if (cont=="y") {ExtFail[k,1]<-1}
+		else {ExtFail[k,1]<-0}}
 		
 		#Calculate lengths and angles of data
-		Res[[Ind]]<-matrix(NA, length(Coord$x), 4)
-		colnames(Res[[Ind]])<-c("x", "y", "t", "theta")
-		Res[[Ind]][,"x"]<-Coord$x
-		Res[[Ind]][,"y"]<-Coord$y
-		for (i in 1:(length(Coord$x))) {
-			Res[[Ind]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
-			{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[Ind]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[Ind]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[Ind]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else {Res[[Ind]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+		Res[[k]]<-matrix(NA, length(Coord$x), 4)
+		colnames(Res[[k]])<-c("x", "y", "t", "theta")
+		Res[[k]][,"x"]<-Coord$x
+		Res[[k]][,"y"]<-Coord$y
+		for (i in 1:length(Coord$x)) {
+			Res[[k]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
+			{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[k]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+			else {Res[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
 			}
 		}
 		if (Double==TRUE) {
-			Res2[[Ind]]<-matrix(NA, length(Coord2$x), 4)
-			colnames(Res2[[Ind]])<-c("x", "y", "t", "theta")
-			Res2[[Ind]][,"x"]<-Coord2$x
-			Res2[[Ind]][,"y"]<-Coord2$y
-			for (i in 1:(length(Coord2$x))) {
-				Res2[[Ind]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
-				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[Ind]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[Ind]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[Ind]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else {Res2[[Ind]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+			Res2[[k]]<-matrix(NA, length(Coord2$x), 4)
+			colnames(Res2[[k]])<-c("x", "y", "t", "theta")
+			Res2[[k]][,"x"]<-Coord2$x
+			Res2[[k]][,"y"]<-Coord2$y
+			for (i in 1:length(Coord2$x)) {
+				Res2[[k]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
+				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[k]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+				else {Res2[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
 				}
 			}
 		}
@@ -760,32 +781,32 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 		#Normalize spiral outline
 		##Normalize size for radius=1
 		if (Normalize==TRUE) {
-			Size<-max(c(Res[[Ind]][,"t"], Res2[[Ind]][,"t"]))
-			Res[[Ind]][,"t"]<-Res[[Ind]][,"t"]/Size
+			Size<-max(c(Res[[k]][,"t"], Res2[[k]][,"t"]))
+			Res[[k]][,"t"]<-Res[[k]][,"t"]/Size
 			if (Double==TRUE) {
-				Res2[[Ind]][,"t"]<-Res2[[Ind]][,"t"]/Size
+				Res2[[k]][,"t"]<-Res2[[k]][,"t"]/Size
 			}
 		}
 		##Normalize rotation for start-point at radian=0
-		Rotation<-Res[[Ind]][1,"theta"]
-		for (i in 1:nrow(Res[[Ind]])) {
-			{if (Res[[Ind]][i,"theta"]>=Rotation) {Res[[Ind]][i,"theta"]<-Res[[Ind]][i,"theta"]-Rotation}
-			else {Res[[Ind]][i,"theta"]<-(2*pi)+(Res[[Ind]][i,"theta"]-Rotation)}}
+		Rotation<-Res[[k]][1,"theta"]
+		for (i in 1:nrow(Res[[k]])) {
+			{if (Res[[k]][i,"theta"]>=Rotation) {Res[[k]][i,"theta"]<-Res[[k]][i,"theta"]-Rotation}
+			else {Res[[k]][i,"theta"]<-(2*pi)+(Res[[k]][i,"theta"]-Rotation)}}
 		}
 		if (Double==TRUE) {
-			for (i in 1:nrow(Res2[[Ind]])) {
-				{if (Res2[[Ind]][i,"theta"]>=Rotation) {Res2[[Ind]][i,"theta"]<-Res2[[Ind]][i,"theta"]-Rotation}
-				else {Res2[[Ind]][i,"theta"]<-(2*pi)+(Res2[[Ind]][i,"theta"]-Rotation)}}
+			for (i in 1:nrow(Res2[[k]])) {
+				{if (Res2[[k]][i,"theta"]>=Rotation) {Res2[[k]][i,"theta"]<-Res2[[k]][i,"theta"]-Rotation}
+				else {Res2[[k]][i,"theta"]<-(2*pi)+(Res2[[k]][i,"theta"]-Rotation)}}
 			}
 		}
-		
-		#Increase row counter
-		Ind<-Ind+1
 	}
 	
 	#Prepare output file
 	Res.Final<-matrix(NA, length(Res)*4, max(unlist(lapply(lapply(Res, dim), '[[', 1))))
-	rownames(Res.Final)<-paste(c("x", "y", "t", "theta"), rep(StartNum:StopNum, each=4), sep=".")
+	{if (is.null(Specimen.Labels)) {L<-1:length(Images)}
+	else if (Specimen.Labels=="Names") {L<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), "[[", 1))}
+	else {L<-Specimen.Labels}}
+	rownames(Res.Final)<-paste(c("x", "y", "t", "theta"), rep(L, each=4), sep=".")
 	for (i in 1:length(Res)) {
 		Start.Line<-i+((i-1)*3)
 		L<-nrow(Res[[i]])
@@ -796,7 +817,10 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 	}
 	if (Double==TRUE) {
 		Res.Final2<-matrix(NA, length(Res2)*4, max(unlist(lapply(lapply(Res2, dim), '[[', 1))))
-		rownames(Res.Final2)<-paste(c("x", "y", "t", "theta"), rep(StartNum:StopNum, each=4), sep=".")
+		{if (is.null(Specimen.Labels)) {L<-1:length(Images)}
+		else if (Specimen.Labels=="Names") {L<-unlist(lapply(strsplit(Images, split=".", fixed=TRUE), "[[", 1))}
+		else {L<-Specimen.Labels}}
+		rownames(Res.Final2)<-paste(c("x", "y", "t", "theta"), rep(L, each=4), sep=".")
 		for (i in 1:length(Res2)) {
 			Start.Line<-i+((i-1)*3)
 			L<-nrow(Res2[[i]])
@@ -829,22 +853,23 @@ SpiralExtraction<-function(ImageName, InputType="ppm", StartNum, StopNum, Output
 #ImageConversion(Images=MorphoImages, Scaling=50, OutputType="tif")
 
 #Extract outlines
-#setwd("C:/R_TestData/GeometricMorphometrics/Outlines")
-#OutlineExtraction("Sp", StartNum=1, StopNum=3, Output="Stars_Rep1", Specimen.Labels=paste("Spec", 1:3, sep="."), OutlinePoints=60, Smoothing=1, Scale=TRUE, RawVersion=TRUE)
-#OutlineExtraction("Sp", InputType="tif", StartNum=1, StopNum=3, Output="Stars_Rep2", Specimen.Labels=paste("Spec", 1:3, sep="."), OutlinePoints=70, Smoothing=1, Scale=TRUE, RawVersion=TRUE)
+#setwd("C:/R_TestData/Outlines")
+#MorphoImages<-ImagePicking(Dir=getwd())
+#OutlineExtraction(Images=MorphoImages, Output="Spirula_Rep1", Specimen.Labels="Names", OutlinePoints=60, Smoothing=1, Scale=FALSE, RawVersion=TRUE)
+#OutlineExtraction(Images=MorphoImages, Output="Spirula_Rep2", Specimen.Labels=paste("Spec", 1:3, sep="."), OutlinePoints=70, Smoothing=1, Scale=FALSE, RawVersion=FALSE)
 
 #Extract landmarks
-#setwd("C:/R_TestData/GeometricMorphometrics/Landmarks")
-#LMExtract(Image="Sp", StartNum=1, StopNum=3, Output="Landmarks1", N=10, Export="NTS")
-#LMExtract(Image="Sp", StartNum=1, StopNum=3, ScaleParam=rep(5.84818294686911, 3), Output="Landmarks2", N=10, Export="NTS")
-#LMExtract(Image="Sp", InputType="tif", StartNum=1, StopNum=3, Output="Landmarks3_Rep1", N=10, Export="TPS")
-#LMExtract(Image="Sp", InputType="tif", StartNum=1, StopNum=3, Output="Landmarks3_Rep2", N=10, Export="TPS")
+#setwd("C:/R_TestData/Landmarks")
+#MorphoImages<-ImagePicking(Dir=getwd())
+#LMExtract(Images=MorphoImages, Output="Landmarks1", N=5, Export="NTS")
+#LMExtract(Images=MorphoImages, ScaleParam=rep(5.84818294686911, 3), Output="Landmarks2", Specimen.Labels=paste("Spec", 1:3, sep="_"), N=5, Export="NTS")
+#LMExtract(Images=MorphoImages, Output="Landmarks3", Specimen.Labels="Names", Scale=FALSE, N=5, Export="TPS")
 
 #Extract spiral morphology
-#setwd("C:/R_TestData/GeometricMorphometrics/Spirals")
-#SpiralExtraction("Spiral", StartNum=1, StopNum=3, Output="SpiralForm", Guidelines=TRUE, Density=23, Equidistant=TRUE, Normalize=TRUE)
-#SpiralExtraction("Spiral", StartNum=1, StopNum=3, Output="SpiralForm", Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE)
-#SpiralExtraction("Spiral", InputType="tif", StartNum=1, StopNum=3, Output="SpiralForm", Guidelines=TRUE, Density=45, Equidistant=TRUE, Normalize=TRUE)
+setwd("C:/R_TestData/Spirals")
+MorphoImages<-ImagePicking(Dir=getwd())
+SpiralExtraction(Images=MorphoImages, Output="SpiralForm", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE)
+SpiralExtraction(Images=MorphoImages, Output="SpiralForm", Specimen.Labels="Names", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE)
 
 #--------------------------------------------
 #--------------------------------------------
