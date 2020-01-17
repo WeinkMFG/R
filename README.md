@@ -4,7 +4,7 @@ This repository contains ASCII codes for use in R. You can principally open them
 
 However, it is often more convenient to write code in an editor and send command lines directly to R. For that, two possible options are either [Notepad++](https://notepad-plus-plus.org/) with the [NppToR](https://sourceforge.net/projects/npptor/) extension installed on your computer, or the use of [Tinn-R](https://sourceforge.net/projects/tinn-r/) as an editor.
 
-All codes in this repository are distributed under the [Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License](http://creativecommons.org/licenses/by-nc-sa/3.0/) and are also available from my [website](https://sites.google.com/site/weinkaufmanuel/).
+All codes in this repository are distributed under the [Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License](http://creativecommons.org/licenses/by-nc-sa/3.0/) and are also available from my [website](https://sites.google.com/view/manuel-f-g-weinkauf/home).
 
 # Description of functions
 
