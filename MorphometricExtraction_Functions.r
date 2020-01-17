@@ -2,8 +2,8 @@
 #Input data set: Images, possibly binarized
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.2.2
-#Date: 16 July 2019
+#Version: 1.3
+#Date: 17 January 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -44,7 +44,9 @@ ImagePicking<-function (Dir, pattern=c("bmp", "gif", "jpg", "jpeg", "png", "tif"
 	Images<-File.list[Image.No]
 	
 	#Output image names
-	return(as.data.frame(Images))
+	Images<-as.data.frame(Images)
+	Images[]<-lapply(Images, as.character)
+	return(Images)
 }
 
 #########################################################################
@@ -236,7 +238,9 @@ OutlineExtraction<-function (Images, Output, Specimen.Labels=NULL, OutlinePoints
 	#Test data consistency
 	if (!is.data.frame(Images)) {stop("'Images' must be a data frame!")}
 	if (ncol(Images)!=1) {warning("'Images' has more than one column. Only first column will be used!")}
-	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	{if (!is.null(Specimen.Labels)) {
+		if (Specimen.Labels!="Names" && length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}}
+	}
 	
 	#Read image list into vector
 	Images<-as.vector(Images[,1])
@@ -466,7 +470,9 @@ LMExtract<-function(Images, Output, Specimen.Labels=NULL, Scale=TRUE, ScaleParam
 	if (Export!="NTS" & Export!="TPS") {stop("Export format must be either NTS or TPS!")}
 	if (Scale==TRUE & !is.null(ScaleParam)) {Scale<-FALSE; warning("Cannot have scalebar and scale parameter at the same time, Scale has been set to FALSE")}
 	if (!is.null(ScaleParam) & length(ScaleParam)!=nrow(Images)) {stop("Must supply one value of ScaleParam per image")}
-	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	{if (!is.null(Specimen.Labels)) {
+		if (Specimen.Labels!="Names" && length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}}
+	}
 	
 	#Read image list into vector
 	Images<-as.vector(Images[,1])
@@ -511,7 +517,7 @@ LMExtract<-function(Images, Output, Specimen.Labels=NULL, Scale=TRUE, ScaleParam
 		Image<-Images[i]
 		
 		cont<-NA
-		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))){
+		while(any(is.na(cont), cont=="n", (cont!="y" && cont!="c"))) {
 			par(mar=(c(1, 1, 1, 1)))
 			plot(y)
 	
@@ -670,7 +676,9 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 	if(Equidistant==TRUE){
 		if(180%%Density!=0){stop(paste("180 cannot be divided by ", Density, " without remainder. Choose another value to get equidistant points along the spiral!", sep=""))}
 	}
-	if (Specimen.Labels!="Names" && !is.null(Specimen.Labels) & length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}
+	{if (!is.null(Specimen.Labels)) {
+		if (Specimen.Labels!="Names" && length(Specimen.Labels)!=nrow(Images)) {stop("Specimen.Labels must have same length as number of images!")}}
+	}
 	
 	#Read image list into vector
 	Images<-as.vector(Images[,1])
@@ -698,7 +706,7 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 		{if (InputType[k]=="ppm") {
 			y<-read.pnm(Image)
 		}
-		else if (InputType[k]=="tif" | InputType=="tiff") {
+		else if (InputType[k]=="tif" | InputType[k]=="tiff") {
 			y<-readTiff(Image)
 		}}
 		
@@ -743,7 +751,7 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 		}
 		
 		#Save image with spiral on for later comparison
-		dev.copy(png, filename=paste(strsplit(FileName, split=".", fixed=TRUE)[[1]][1], "_Spiral.png", sep=""), width=5, height=5, units="in", res=200);
+		dev.copy(png, filename=paste(strsplit(Image, split=".", fixed=TRUE)[[1]][1], "_Spiral.png", sep=""), width=5, height=5, units="in", res=200);
 		dev.off();
 		
 		#Write success report
@@ -753,27 +761,31 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 		#Calculate lengths and angles of data
 		Res[[k]]<-matrix(NA, length(Coord$x), 4)
 		colnames(Res[[k]])<-c("x", "y", "t", "theta")
-		Res[[k]][,"x"]<-Coord$x
-		Res[[k]][,"y"]<-Coord$y
-		for (i in 1:length(Coord$x)) {
-			Res[[k]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
-			{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[k]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
-			else {Res[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+		if (cont=="y") {
+			Res[[k]][,"x"]<-Coord$x
+			Res[[k]][,"y"]<-Coord$y
+			for (i in 1:length(Coord$x)) {
+				Res[[k]][i,"t"]<-sqrt((Coord$x[i]-start$x)^2+(Coord$y[i]-start$y)^2)
+				{if((Coord$x[i]-start$x)>=0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+				else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)>=0){Res[[k]][i,"theta"]<-pi-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+				else if((Coord$x[i]-start$x)<0 && (Coord$y[i]-start$y)<0){Res[[k]][i,"theta"]<-pi+atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+				else {Res[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord$y[i]-start$y))/abs((Coord$x[i]-start$x)))}
+				}
 			}
 		}
 		if (Double==TRUE) {
 			Res2[[k]]<-matrix(NA, length(Coord2$x), 4)
 			colnames(Res2[[k]])<-c("x", "y", "t", "theta")
-			Res2[[k]][,"x"]<-Coord2$x
-			Res2[[k]][,"y"]<-Coord2$y
-			for (i in 1:length(Coord2$x)) {
-				Res2[[k]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
-				{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[k]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
-				else {Res2[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+			if (cont=="y") {
+				Res2[[k]][,"x"]<-Coord2$x
+				Res2[[k]][,"y"]<-Coord2$y
+				for (i in 1:length(Coord2$x)) {
+					Res2[[k]][i,"t"]<-sqrt((Coord2$x[i]-start$x)^2+(Coord2$y[i]-start$y)^2)
+					{if((Coord2$x[i]-start$x)>=0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+					else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)>=0){Res2[[k]][i,"theta"]<-pi-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+					else if((Coord2$x[i]-start$x)<0 && (Coord2$y[i]-start$y)<0){Res2[[k]][i,"theta"]<-pi+atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+					else {Res2[[k]][i,"theta"]<-(2*pi)-atan(abs((Coord2$y[i]-start$y))/abs((Coord2$x[i]-start$x)))}
+					}
 				}
 			}
 		}
@@ -781,7 +793,11 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 		#Normalize spiral outline
 		##Normalize size for radius=1
 		if (Normalize==TRUE) {
-			Size<-max(c(Res[[k]][,"t"], Res2[[k]][,"t"]))
+			{if (Double==TRUE) {
+				Size<-max(c(Res[[k]][,"t"], Res2[[k]][,"t"]))
+				}
+			else {Size<-max(Res[[k]][,"t"])}
+			}
 			Res[[k]][,"t"]<-Res[[k]][,"t"]/Size
 			if (Double==TRUE) {
 				Res2[[k]][,"t"]<-Res2[[k]][,"t"]/Size
@@ -790,12 +806,12 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 		##Normalize rotation for start-point at radian=0
 		Rotation<-Res[[k]][1,"theta"]
 		for (i in 1:nrow(Res[[k]])) {
-			{if (Res[[k]][i,"theta"]>=Rotation) {Res[[k]][i,"theta"]<-Res[[k]][i,"theta"]-Rotation}
+			{if (!is.na(Res[[k]][i,"theta"]) & Res[[k]][i,"theta"]>=Rotation) {Res[[k]][i,"theta"]<-Res[[k]][i,"theta"]-Rotation}
 			else {Res[[k]][i,"theta"]<-(2*pi)+(Res[[k]][i,"theta"]-Rotation)}}
 		}
 		if (Double==TRUE) {
 			for (i in 1:nrow(Res2[[k]])) {
-				{if (Res2[[k]][i,"theta"]>=Rotation) {Res2[[k]][i,"theta"]<-Res2[[k]][i,"theta"]-Rotation}
+				{if (!is.na(Res2[[k]][i,"theta"]) & Res2[[k]][i,"theta"]>=Rotation) {Res2[[k]][i,"theta"]<-Res2[[k]][i,"theta"]-Rotation}
 				else {Res2[[k]][i,"theta"]<-(2*pi)+(Res2[[k]][i,"theta"]-Rotation)}}
 			}
 		}
@@ -866,10 +882,10 @@ SpiralExtraction<-function(Images, Output, Specimen.Labels=NULL, Guidelines=TRUE
 #LMExtract(Images=MorphoImages, Output="Landmarks3", Specimen.Labels="Names", Scale=FALSE, N=5, Export="TPS")
 
 #Extract spiral morphology
-setwd("C:/R_TestData/Spirals")
-MorphoImages<-ImagePicking(Dir=getwd())
-SpiralExtraction(Images=MorphoImages, Output="SpiralForm", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE)
-SpiralExtraction(Images=MorphoImages, Output="SpiralForm", Specimen.Labels="Names", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE)
+#setwd("C:/R_TestData/Spirals")
+#MorphoImages<-ImagePicking(Dir=getwd())
+#SpiralExtraction(Images=MorphoImages, Output="SpiralForm1", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE)
+#SpiralExtraction(Images=MorphoImages, Output="SpiralForm2", Specimen.Labels="Names", Guidelines=TRUE, Density=90, Equidistant=TRUE, Normalize=TRUE, Double=TRUE)
 
 #--------------------------------------------
 #--------------------------------------------
@@ -881,6 +897,7 @@ SpiralExtraction(Images=MorphoImages, Output="SpiralForm", Specimen.Labels="Name
 #1.2	Added functionality to Spiral.Extraction to extract two parallel spirals and enhanced visuals
 #1.2.1	Fixed an error where Spiral.Extraction would fail if StartNum was different from 1
 #1.2.2	Fixed an error where OutlineExtraction would fail if StartNum was different from 1
+#1.3	All extraction functions select images via an image-name list, eliminating the need to rename image files
 #--------------------------------------------
 #--------------------------------------------
 
