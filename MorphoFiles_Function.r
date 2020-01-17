@@ -12,8 +12,8 @@
 #	http://www.canisius.edu/~sheets/morphsoft.html
 
 #Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.3.1
-#Date: 16 July 2019
+#Version: 1.3.2
+#Date: 17 January 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -359,7 +359,7 @@ Append.NTS<-function (File1, File2, Output, Delete.old=FALSE, Col.labels=NULL) {
 # Input dataset: Morphometric object suitable for shapes-package.       #
 #########################################################################
 
-Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(letters[seq(from=24, to=25)], dim(Input)[1]), rep(1:dim(Input)[1], each=2), sep=""), Output, version=2, Col=rep("Black", dim(Input)[1]), Sym=rep("Dot", dim(Input)[1])) {
+Write.PAST<-function (Input, Row.labels=1:dim(Input)[3], Col.labels=paste(rep(letters[seq(from=24, to=25)], dim(Input)[1]), rep(1:dim(Input)[1], each=2), sep=""), Output, version=2, Col=rep("Black", dim(Input)[3]), Sym=rep("Dot", dim(Input)[3])) {
 	#Check for consistency
 	if (version!=2 & version!=3) {stop("Version must be either '2' or '3'!")}
 	if (!is.null(Row.labels) && length(Row.labels)!=dim(Input)[3]) {stop("Row.labels must correspond in length to number of specimens in Input!")}
@@ -433,7 +433,7 @@ Read.PAST<-function (File, version=2) {
 	}
 	
 	#Coerce data
-	LMData<-array(NA, dim=c(ncol(PAST)/2, 2, nrow(PAST)), dimnames=list(NULL, c("x", "y"), NULL))
+	LMData<-array(NA, dim=c(ncol(PAST)/2, 2, nrow(PAST)), dimnames=list(NULL, c("x", "y"), rownames(PAST)))
 	Seq.x<-seq.int(from=1, to=ncol(PAST)-1, by=2)
 	Seq.y<-seq.int(from=2, to=ncol(PAST), by=2)
 	for (j in 1:nrow(PAST)) {
@@ -692,8 +692,8 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 	#Write data into shapes object
 	LineCount<-1
 	SpecCount<-1
-	for (i in 1:(length(TPS.data))) {
-		Output$LMData[LineCount,,SpecCount]<-as.numeric(strsplit(TPS.data[i], " ")[[1]])
+	for (i in 1:length(TPS.data)) {
+		Output$LMData[LineCount,,SpecCount]<-suppressWarnings(as.numeric(strsplit(TPS.data[i], " ")[[1]]))
 		{if (LineCount<TPS.meta$Landmarks) {LineCount<-LineCount+1}
 		else LineCount<-1}
 		{if (LineCount==1) {SpecCount<-SpecCount+1}}
@@ -719,14 +719,15 @@ Read.TPS<-function (File, Scale=TRUE, na.remove=TRUE) {
 		Output$Scale<-Output$Scale[which(na.pos==FALSE)]
 		Output$LMData<-Output$LMData[,,which(na.pos==FALSE)]
 	}
-
+	
+	#Return results
 	return(Output)
 }
 
 #########################################################################
 # Combine two TPS files into one                                        #
 # Necessary input variables:                                            #
-#    File1: First .tps file to be combined.                             #
+#  File1: First .tps file to be combined.                             #
 #           *character*                                                 #
 #    File2: Second .tps file to be combined.                            #
 #           *character*                                                 #
@@ -805,15 +806,18 @@ Append.TPS<-function (File1, File2, Output, Delete.old=FALSE) {
 # Necessary input variables:                                            #
 #    File: SPIRAL file to be read.                                      #
 #          *string*                                                     #
-# Output data: List object containing coordinates and polar coordi-...  #
-#              nates of all specimens (one list entry per specimen).    #
+#    na.remove: Shall specimens that contain any NA values be removed?  #
+#               *logical*                                               #
+#               TRUE: Remove those specimens                            #
+#               FALSE: Leave data as is                                 #
+#               default=TRUE                                            #
 # Input dataset: Morphometric data file in SPIRAL format.               #
 #########################################################################
 
 #Load packages
 require(stringr)
 
-Read.Spiral<-function (File) {
+Read.Spiral<-function (File, na.remove=TRUE) {
 	#Read file
 	Dat<-read.table(File, header=FALSE, sep=",", row.names=1)
 	
@@ -825,7 +829,8 @@ Read.Spiral<-function (File) {
 	for (i in 1:nrow(Dat)) {
 		{if (i%%4==1) {
 			Temp<-Dat[i:(i+3),]
-			Length<-max(which(!is.na(Temp[1,])))
+			{if (all(is.na(Temp[1,]))) {Length=1}
+			else {Length<-max(which(!is.na(Temp[1,])))}}
 			Output[[Pos]]<-matrix(NA, Length, 4)
 			colnames(Output[[Pos]])<-c("x", "y", "t", "theta")
 			Output[[Pos]][,"x"]<-as.vector(as.matrix(Temp[1,1:Length]))
@@ -838,6 +843,7 @@ Read.Spiral<-function (File) {
 	}
 	
 	#Return results
+	if (na.remove==TRUE) {Output<-Filter(Negate(anyNA), Output)}
 	return(Output)
 }
 
@@ -951,8 +957,8 @@ Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
 #Append.NTS("Stars_Rep1.nts", "Stars_Rep1.nts", "Stars_Rep1.nts", Delete.old=TRUE)
 
 #File format for PAST 2.x and 3.x
-#Write.PAST(Test1, Output="PAST2Example_File.dat")
-#Write.PAST(Test1, Output="PAST3Example_File.dat", version=3)
+#Write.PAST(Test1, Row.labels=paste("Spec", 1:dim(Test1)[3], sep="."), Output="PAST2Example_File.dat")
+#Write.PAST(Test1, Row.labels=paste("Spec", 1:dim(Test1)[3], sep="."), Output="PAST3Example_File.dat", version=3)
 #Data<-Read.PAST("PAST2Example_File.dat")
 #Data<-Read.PAST("PAST3Example_File.dat", version=3)
 #Append.PAST("PAST2Example_File.dat", "PAST2Example_File.dat", Output="TestPAST2.dat")
@@ -986,6 +992,7 @@ Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
 #	Read.Spiral now uses the actual specimen numbers for naming the output object elements
 #1.3.1	Corrected check for compatability of dimensions in all append-functions
 #	Append.NTS corrected so that baseline-files are also correctly updated
+#1.3.2	Updated Read.PAST and Read.Spiral to properly read the specimen names, and Read.Spiral to handle all-NA specimens
 #--------------------------------------------
 #--------------------------------------------
 
