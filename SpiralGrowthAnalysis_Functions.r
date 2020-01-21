@@ -4,8 +4,8 @@
 #	-Images in the ppm format
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 1.4
-#Date: 16 July 2019
+#Version: 1.4.1
+#Date: 21 January 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -28,6 +28,9 @@
 #   Theta: Name of the column containing the angle value.               #
 #          *string*                                                     #
 #          default="theta"                                              #
+#   Raw: Should the raw data for the regression be exported as well?    #
+#        *logical*                                                      #
+#        default=TRUE                                                   #
 # Input dataset: A set of data points along the spiral, given as...     #
 #                radial distance t and  angle theta in radians....      #
 #                Values are supposed to be normalized for radius one... #
@@ -42,7 +45,7 @@
 #Loading packages
 require(lmodel2)
 
-SpiralAnalysis<-function(Input, T="t", Theta="theta") {
+SpiralAnalysis<-function(Input, T="t", Theta="theta", Raw=TRUE) {
 	#Test data consistency
 	Input.Colnames<-lapply(Input, colnames)
 	Col.checker<-list()
@@ -100,6 +103,14 @@ SpiralAnalysis<-function(Input, T="t", Theta="theta") {
 		
 		#Log transforming t for applicability of linear regression
 		Data[,1]<-log(Data[,1])
+		#Storing raw data
+		if (Raw==TRUE) {
+			Res.Temp<-as.data.frame(matrix(NA, nrow(Data), 3))
+			Res.Temp[,1]<-rep(names(Input)[k], nrow(Data))
+			Res.Temp[,2:3]<-Data
+			{if (k==1) {Res2<-Res.Temp}
+			else {Res2<-rbind(Res2, Res.Temp)}}
+		}
 		#Calculating model II linear regression
 		Fit<-lmodel2(Data[,2]~Data[,1], range.x="interval", range.y="relative")
 		Res[k,1]<-Fit$regression.results[which(Fit$regression.result[,"Method"]=="RMA"),"Slope"]
@@ -112,6 +123,9 @@ SpiralAnalysis<-function(Input, T="t", Theta="theta") {
 	}
 	
 	#Return results
+	if (Raw==TRUE) {
+		Res<-list(Regression=Res, Raw.values=Res2)
+	}
 	return(Res)
 }
 
@@ -130,6 +144,7 @@ SpiralAnalysis<-function(Input, T="t", Theta="theta") {
 #1.2	Changes OLS to RMA in SpiralAnalysis
 #1.3	Removed ImageConversion and SpiralExtraction functions to include in separate functions file MorphometricExtraction_Functions.r
 #1.4	Modified SpiralAnalysis to be integrated with the new data file structure of Spiral files
+#1.4.1	Added option in to also export the raw values for the regression
 #--------------------------------------------
 #--------------------------------------------
 

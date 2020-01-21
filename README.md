@@ -118,7 +118,7 @@ Linear regression in general is one of the most abused methods of statistical an
 
 * Theil, H. (1950) A Rank-Invariant Method of Linear and Polynomial Regression Analysis, III. *Proceedings of the Koninklijke Nederlandse Akademie van Wetenschappen* 53 (9): 1397-412.
 
-## SpiralGrowthAnalysis_Functions v. 1.4
+## SpiralGrowthAnalysis_Functions v. 1.4.1
 
 This function provides tools to extract growth data on spirally growing organisms (Foraminifera, Ammonoidea, etc.) and analyse those data using a robust linear regression. Its purpose is to test the deviation of growth from spirality, to estimate to what degree the growth follows an ideal logarithmic spiral.
 
