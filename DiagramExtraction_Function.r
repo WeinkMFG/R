@@ -12,8 +12,8 @@
 #             perpendicular to each other (e.g. Mercator).
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 1.3
-#Date: 1 September 2016
+#Version: 1.4
+#Date: 20 February 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -25,28 +25,67 @@
 #setwd("C:/R_TestData/Diagrams")
 
 #########################################################################
+# Image picking                                                         #
+# Necessary input variables:                                            #
+#    Dir: Directory path.                                               #
+#         *character*                                                   #
+#    pattern: Which file types to look for (i.e. the types of your)...  #
+#             image files. By default scans for the common file types...#
+#             "jpg", "png", "tif", "bmp", "gif", and the common type... #
+#             used in moprhometrics "ppm".                              #
+#             *character*                                               #
+# Output data: Vector of all image files to use.                        #
+# Input dataset: Computer directory.                                    #
+#########################################################################
+
+ImagePicking<-function (Dir, pattern=c("bmp", "gif", "jpg", "jpeg", "png", "tif", "tiff", "ppm")) {
+	#Set up pattern parameter
+	pattern<-paste("\\.", pattern, "$", sep="", collapse="|")
+
+	#List all files
+	File.list<-list.files(Dir, pattern=pattern, ignore.case=TRUE)
+	names(File.list)<-1:length(File.list)
+	print(File.list)
+	
+	#Provide the choice of files by number
+	writeLines("Please input the numbers of the files you wish to use. \nSeveral numbers can be input separated by commas. \nDO NOT ENTER SPACES!")
+	Image.No<-readline(prompt="Enter the image numbers: ")
+	Image.No<-scan(text=Image.No, quiet=TRUE, sep=",")
+	Images<-File.list[Image.No]
+	
+	#Output image names
+	Images<-as.data.frame(Images)
+	Images[]<-lapply(Images, as.character)
+	return(Images)
+}
+
+#########################################################################
 # Image conversion                                                      #
 # Necessary programs: Image Magic                                       #
 # Necessary input variables:                                            #
-#    ImageName: Name part of images (same for all images).              #
-#               *character*                                             #
-#    StartNum: Smallest of row of continuous numbers used to number...  #
-#              images.                                                  #
-#              *numeric (integer)*                                      #
-#    StopNum: Largest of row of continuous numbers used to number...    #
-#             images.                                                   #
-#              *numeric (integer)*                                      #
-#    ImageType: Image type of input images as ".xyz".                   #
-#               *character*                                             #
-#    OutputType: Image type for output as ".xyz".                       #
+#    Images: A list of all the images to be converted.                  #
+#            *data frame* with image names in first column.             #
+#    Scaling: Relative scaling of the image during conversion.          #
+#             *numeric (integer)*                                       #
+#             default=100                                               #
+#    OutputType: Image type for output as "xyz".                        #
 #                *character*                                            #
-# Output data: Images in chosen output format.                          #
-# Input dataset: Images in chosen input format.                         #
+# Output data: Images in OutputType format.                             #
+# Input dataset: Images to convert.                                     #
 #########################################################################
 
-ImageConversion<-function (ImageName, StartNum, StopNum, ImageType, OutputType) {
-	for (i in StartNum:StopNum) {
-		com<-paste("convert ", ImageName, i, ImageType, " ", ImageName, i, OutputType, sep="")
+ImageConversion<-function(Images, Scaling=100, OutputType) {
+	#Test data consistency
+	if (!is.data.frame(Images)) {stop("'Images' must be a data frame!")}
+	if (ncol(Images)!=1) {warning("'Images' has more than one column. Only first column will be used!")}
+	
+	#Read image list into vector
+	Images<-as.vector(Images[,1])
+	
+	#Convert images
+	for (i in 1:length(Images)){
+		Name<-strsplit(Images[i], split=".", fixed=TRUE)[[1]][1]
+		com<-paste("convert ", Images[i], " ", "-resize ", Scaling, "%", " ", Name, ".", OutputType, sep="")
 		shell(com)
 	}
 }
@@ -313,5 +352,6 @@ CoordExt<-function (Image, Output=NULL, Export=TRUE, LogX=FALSE, LogY=FALSE, Equ
 #1.2	Added the functionality to also work with logarithmic axes
 #1.3	Changed handling of log axes, added functionality for more image types,
 #	implemented points extraction for geographical maps
+#1.4	Updated image converter corresponding to morphometric functions
 #--------------------------------------------
 #--------------------------------------------
