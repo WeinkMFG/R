@@ -312,7 +312,7 @@ CoordExt<-function (Image, Output=NULL, Export=TRUE, LogX=FALSE, LogY=FALSE, Equ
 	if (LogY==TRUE) {Res[,2]<-10^Res[,2]}
 	
 	#Exporting results
-	{if (Export==TRUE) {write.table(Res, Output, sep="\t")}
+	{if (Export==TRUE) {write.table(Res, Output, sep="\t", quote=FALSE, row.names=FALSE)}
 	else {return(Res)}}
 }
 
@@ -353,5 +353,6 @@ CoordExt<-function (Image, Output=NULL, Export=TRUE, LogX=FALSE, LogY=FALSE, Equ
 #1.3	Changed handling of log axes, added functionality for more image types,
 #	implemented points extraction for geographical maps
 #1.4	Updated image converter corresponding to morphometric functions
+#	Changed write.table for cleaner export of results
 #--------------------------------------------
 #--------------------------------------------
