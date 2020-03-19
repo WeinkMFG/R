@@ -4,8 +4,8 @@
 #	-Images in the ppm format
 
 #Author: Manuel Weinkauf (Manuel.Weinkauf@unige.ch)
-#Version: 1.4.1
-#Date: 21 January 2020
+#Version: 1.4.2
+#Date: 19 March 2020
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
@@ -112,18 +112,19 @@ SpiralAnalysis<-function(Input, T="t", Theta="theta", Raw=TRUE) {
 			else {Res2<-rbind(Res2, Res.Temp)}}
 		}
 		#Calculating model II linear regression
-		Fit<-lmodel2(Data[,2]~Data[,1], range.x="interval", range.y="relative")
+		Fit<-lmodel2(Data[,1]~Data[,2], range.x="relative", range.y="interval")
 		Res[k,1]<-Fit$regression.results[which(Fit$regression.result[,"Method"]=="RMA"),"Slope"]
 		Res[k,2]<-Fit$regression.results[which(Fit$regression.result[,"Method"]=="RMA"),"Intercept"]
 		##Calculating R2 of RMA
-		y.mean<-mean(Data[,2])
-		SS.tot<-sum((Data[,2]-y.mean)^2)
-		SS.res<-sum((Data[,2]-(Data[,1]*Res[k,1]+Res[k,2]))^2)
+		y.mean<-mean(Data[,1])
+		SS.tot<-sum((Data[,1]-y.mean)^2)
+		SS.res<-sum((Data[,1]-(Data[,2]*Res[k,1]+Res[k,2]))^2)
 		Res[k,3]<-1-(SS.res/SS.tot)
 	}
 	
 	#Return results
 	if (Raw==TRUE) {
+		colnames(Res2)<-c("ID", "log(T)", "Theta")
 		Res<-list(Regression=Res, Raw.values=Res2)
 	}
 	return(Res)
@@ -145,6 +146,8 @@ SpiralAnalysis<-function(Input, T="t", Theta="theta", Raw=TRUE) {
 #1.3	Removed ImageConversion and SpiralExtraction functions to include in separate functions file MorphometricExtraction_Functions.r
 #1.4	Modified SpiralAnalysis to be integrated with the new data file structure of Spiral files
 #1.4.1	Added option in to also export the raw values for the regression
+#1.4.2	Modified SpiralAnalysis, so that actually T is the dependent variable to Theta, not the other way around. This woild not be wrong, 
+#	but make results less intiutive to interpret.
 #--------------------------------------------
 #--------------------------------------------
 
