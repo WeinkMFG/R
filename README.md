@@ -10,7 +10,7 @@ All codes in this repository are distributed under the [Creative Commons Attribu
 
 ## Coordinate_TestData
 
-A folder containing test data for the file CoordinateTranslation_Function.r.
+A folder containing test data for the file GeographicCalculator_Function.r.
 
 ## DiagramExtraction_Examples
 
@@ -44,10 +44,6 @@ The coefficient of variation can be used to assess how variable a population is 
 
 * Vangel, M. G. (1996) Confidence intervals for a normal coefficient of variation. *The American Statistician* 50 (1): 21–6. 
 
-## CoordinateTranslation_Function.r v. 2.1.1
-
-Everybody working in the field of geosciences knows the problem with different systems of geographical coordinates. While many people still prefer the degrees–minute–second scheme, many programs require decimal degrees. Some sources even mix both systems and provide coordinates as degrees–minute.minute. The problem becomes even more immanent if someone compiles data from different sources and wants to convert them into one scheme. This code provides the means to convert a set of coordinates provided in any of the aforementioned systems in any other of those systems. I did not find a way to invoke something like an automated format recognition (and I doubt if that is possible), so that the data encoding must be manually entered in the first or second column of the dataset. 
-
 ##  CurveDiscussion_Function.r v. 1.0
 
 Sometimes, one can fit a complex yet explanatory valid function to an observation of data. Oftentimes it is then necessary to work with parameters of that fitted function. While it is comparatively easy to find extremal points of such a function or calculate the goodness of fit, some tasks are harder to perform. The curvature function is a well known equation that allows to find the point of maximum curvature in a function, but it is rather difficult to calculate. Partly so, because it requires complex mathematics with the first and second derivative of the original function, and principally also the resulting curvature function. The R code provided calculates and returns the curvature function of any input function. It also iteratively calculates the position of maximum curvature in the input function. While this iterative approach is principally inferior to the mathematical approach using derivatives, it circumvents some problems and can still principally deliver results with a virtually infinite accuracy.
@@ -62,9 +58,10 @@ This program can be used to project morphometric data extracted from specimens o
 
 **Cite as:** Weiner, A. K. M., Weinkauf, M. F. G., Kurasawa, A., Darling, K. F., and Kučera, M. (2015) Genetic and morphometric evidence for parallel evolution of the Globigerinella calida morphotype. Marine Micropaleontology 114: 19–35. doi:10.1016/j.marmicro.2014.10.003
 
-## GeographicCalculator_Function.r v. 1.0
+## GeographicCalculator_Function.r v. 2.0
 
-This file cointains functions that have to do with geographical calculations. It will probably be expanded in the future, but for now it only contains a function that allows to calculate the corner coordinates of a square of a given size around a given center coordinate.
+This file cointains functions that have to do with geographical calculations. Everybody working in the field of geosciences knows the problem with different systems of geographical coordinates. While many people still prefer the degrees–minute–second scheme, many programs require decimal degrees. Some sources even mix both systems and provide coordinates as degrees–minute.minute. The problem becomes even more immanent if someone compiles data from different sources and wants to convert them into one scheme. This code provides the means to convert a set of coordinates provided in any of the aforementioned systems in any other of those systems. I did not find a way to invoke something like an automated format recognition (and I doubt if that is possible), so that the data encoding must be manually entered in the first or second column of the dataset.
+Further, the program will probably be expanded in the future, but for now it also contains a function that allows to calculate the corner coordinates of a square of a given size around a given center coordinate.
 
 ## GeometricMorphometrics_Functions.r v. 1.11.2
 
@@ -128,13 +125,11 @@ It can sometimes be difficult to calculate the goodness of fit (i.e. the ability
 
 * Stukel, Th. A. (1988) Generalized logistic models. *Journal of the American Statistical Association* 83 (402): 426–31.
 
-## ToGMT_Function v. 1.2
+## DataFiles_Function v. 2.0
 
-This file provides a couple of functions to read and transform data from other sources to be used in the Generic Mapping Tools. Currently works with: World Ocean Atlas .csv data, Ocean Data View spreadsheets (.txt files).
-
-## ToPAST_Function v. 1.0
-
-This file provides functions to read and write data in PAST v. 2.x and v. 3.x formats (Hammer et al. 2001) from R.
+This file provides a couple of functions to read and transform data from other sources. At the moment it contains:
+* Functions to read and transform data for use with the Generic Mapping Tools. Currently works with: World Ocean Atlas .csv data, Ocean Data View spreadsheets (.txt files).
+* Functions to read and write data in PAST v. 2.x and v. 3.x formats (Hammer et al. 2001) from R.
 
 * Hammer, Ø., Harper, D., and Ryan, P. D. (2001) PAST: PAlaeontological STatistics software package for education and data anslysis. *Palaeontologia Electronica* 4 (1): Article 4.
 
@@ -146,7 +141,7 @@ Traditional morphometrics are one of the two major branches of morphometrics (ge
 
 # Author
 
-Manuel F. G. Weinkauf, Universite de Geneve, Departement des sciences de la Terre, 1205 Geneve, Switzerland; Manuel.Weinkauf@unige.ch
+Manuel F. G. Weinkauf, Charles University in Prague, Institute of Geology and Palaeontology, Albertov 2038/6, 128 43 Praha, Czech Republic; weinkaufmanuel@gmail.com
 
 
 
