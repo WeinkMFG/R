@@ -1,26 +1,35 @@
-#Reading and writing morphometric standard files
-#Input data set:
-#	-For write functions, morphometric data as shapes object
-#Further Reading:
-#Hammer, O. (1999-2012) "PAST: PAlaeontological STatistics Version 2.17 Reference...
-#	Manual". (University of Oslo: Oslo).
-#Rohlf, F. J. (2004) "NTSYSpc: Numerical Taxonomy and Multivariate Analysis...
-#	System v. 2.1". (Exeter Software: Setauket).
-#	http://www.exetersoftware.com/downloads/ntsysguide21.pdf
-#Sheets, H. D. (2004) "IMP6-Integrated Morphometrics Package". (Canisius College:...
-#	Buffalo)
-#	http://www.canisius.edu/~sheets/morphsoft.html
-
-#Author: Manuel Weinkauf  (Manuel.Weinkauf@unige.ch)
-#Version: 1.3.2
-#Date: 17 January 2020
+## HEAD #####################################################################################################
+#
+# FUNCTION SET DESCRIPTION
+#	Reading and writing morphometric standard files
+#
+# FURTHER READING
+#	Hammer, O. (1999-2012) "PAST: PAlaeontological STatistics Version 2.17 Reference...
+#		Manual". (University of Oslo: Oslo).
+#	Rohlf, F. J. (2004) "NTSYSpc: Numerical Taxonomy and Multivariate Analysis...
+#		System v. 2.1". (Exeter Software: Setauket).
+#		http://www.exetersoftware.com/downloads/ntsysguide21.pdf
+#	Sheets, H. D. (2004) "IMP6-Integrated Morphometrics Package". (Canisius College:...
+#		Buffalo)
+#		http://www.canisius.edu/~sheets/morphsoft.html
+#	
+# METADATA
+#	Author: Manuel F. G. Weinkauf
+#	E-mail: weinkauf.scientific@gmail.com
+#	R-version: 4.2.1
+#	RStudio-version: 2022.07.1
+#	Code-version: 1.3.3
+#	Date of last update: 24 August 2022
 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 #This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.#
 #To view a copy of this license, visit http://creativecommons.org/licenses/by-nc-sa/3.0/.                   #
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-#**************************************************************************************
+## BODY #####################################################################################################
+
+##***********************************************************************************************************
+
 #Setting working directory
 #setwd("C:/R_TestData/Outline")
 
@@ -768,8 +777,8 @@ Append.TPS<-function (File1, File2, Output, Delete.old=FALSE) {
 	}
 	
 	#Test compatibility of data
-	if (dim(Dat1)[1]!=dim(Dat2)[1]) {stop("Datasets to combine do not have same number of outline points!")}
-	if (dim(Dat1)[2]!=dim(Dat2)[2]) {stop("Datasets to combine do not have same dimensionality!")}
+	if (dim(Dat1$LMData)[1]!=dim(Dat2$LMData)[1]) {stop("Datasets to combine do not have same number of outline points!")}
+	if (dim(Dat1$LMData)[2]!=dim(Dat2$LMData)[2]) {stop("Datasets to combine do not have same dimensionality!")}
 	
 	#Combine data
 	Dat.Meta.Comb<-list()
@@ -924,9 +933,8 @@ Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
 	}
 }
 
-#--------------------------------------------
+## EXAMPLES *************************************************************************************************
 
-#Examples
 #setwd("C:/R_TestData/GeometricMorphometrics")
 #Test1<-array(runif(100), dim=c(5, 2, 10), dimnames=list(NULL, c("x", "y"), 1:10))
 #Test2<-matrix(NA, 10, 11)
@@ -976,23 +984,54 @@ Append.Spiral<-function (File1, File2, Output, Delete.old=FALSE) {
 #Data<-Read.Spiral("SPIRALExample_File.spiral")
 #Append.Spiral("SPIRALExample_File.spiral", "SPIRALExample_File.spiral", Output="SPIRALExample_File.spiral", Delete.old=TRUE)
 
-#--------------------------------------------
-#--------------------------------------------
-#Version History
-#1.0	Finished Program
-#1.1	Added Write.PAST, Read.PAST, and Read.IMP functions
-#	added colnames check in Write.NTS
-#	added file cleanup for Write.TPS
-#1.2	Added Read.Spiral
-#1.3	Added "Apend" functions for all data files
-#	upgraded PAST for compatability with PAST 3.x files
-#       added return of ID to Read.TPS
-#	removed unused "Centroid" parameter from TPS functions
-#	added manual ID generation to Write.TPS
-#	Read.Spiral now uses the actual specimen numbers for naming the output object elements
-#1.3.1	Corrected check for compatability of dimensions in all append-functions
-#	Append.NTS corrected so that baseline-files are also correctly updated
-#1.3.2	Updated Read.PAST and Read.Spiral to properly read the specimen names, and Read.Spiral to handle all-NA specimens
-#--------------------------------------------
-#--------------------------------------------
+##***********************************************************************************************************
+
+## FOOT #####################################################################################################
+
+## VERSION HISTORY ******************************************************************************************
+# Version 1.0
+#	Date: XXX
+#	Description of changes:
+#		-Finished Program
+#
+# Version 1.1
+#	Date: XXX
+#	Description of changes:
+#		-Added Write.PAST, Read.PAST, and Read.IMP functions
+#		-Added colnames check in Write.NTS
+#		-Added file cleanup for Write.TPS
+#
+# Version 1.2
+#	Date: XXX
+#	Description of changes:
+#		-Added Read.Spiral
+#
+# Version 1.3
+#	Date: XXX
+#	Description of changes:
+#		-Added "Apend" functions for all data files
+#		-Upgraded PAST for compatability with PAST 3.x files
+#		-Added return of ID to Read.TPS
+#		-Removed unused "Centroid" parameter from TPS functions
+#		-Added manual ID generation to Write.TPS
+#		-Read.Spiral now uses the actual specimen numbers for naming the output object elements
+#
+# Version 1.3.1
+#	Date: XXX
+#	Description of changes:
+#		-Corrected check for compatability of dimensions in all append-functions
+#		-Append.NTS corrected so that baseline-files are also correctly updated
+#
+# Version 1.3.2
+#	Date: XXX
+#	Description of changes:
+#		-Updated Read.PAST and Read.Spiral to properly read the specimen names, and Read.Spiral to handle all-NA specimens
+#
+# Version 1.3.3
+#	Date: 24 August 2022
+#	Description of changes:
+#		-Corrected check for compatability of dimensions in Append.TPS
+##***********************************************************************************************************
+
+#############################################################################################################
 
